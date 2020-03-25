@@ -85,10 +85,12 @@ https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/Coronaf%C3%A4
 https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?f=json&where=NeuerFall%3D1&returnGeometry=false&spatialRel=esriSpatialRelIntersects&outFields=*&outStatistics=%5B%7B%22statisticType%22%3A%22sum%22%2C%22onStatisticField%22%3A%22AnzahlFall%22%2C%22outStatisticFieldName%22%3A%22value%22%7D%5D&cacheHint=true
 ```)
 
-<pre><code>https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?
+<pre>
+https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?
 where=Meldedatum%3C%3D%27<span style="color:red">03</span>%2F<span style="color:red">24</span>%2F<span style="color:red">2020</span>%27&
 outStatistics=%5B%7B%22statisticType%22%3A%22sum%22%2C%22onStatisticField%22%3A%22AnzahlFall%22%2C%22outStatisticFieldName%22%3A%22value%22%7D%5D&having=&
-f=pjson</code></pre>
+f=pjson
+</pre>
 
 Über den Parameter `where` kann nach Datum gefiltert werden. `where=Meldedatum%3C%3D%2703%2F24%2F2020%27` steht für `Meldedatum<='03/24/2020'` - also alle Fälle bis einschließlich 24.03.2020.  
 
