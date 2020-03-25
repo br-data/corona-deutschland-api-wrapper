@@ -87,7 +87,7 @@ https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/F
 
 ```text
 https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?
-where=Meldedatum%3C%3D%27<span style="color:red">03</span>%2F<span style="color:red">24</span>%2F<span style="color:red">2020</span>%27&
+where=Meldedatum%3C%3D%2703%2F24%2F2020%27&
 outStatistics=%5B%7B%22statisticType%22%3A%22sum%22%2C%22onStatisticField%22%3A%22AnzahlFall%22%2C%22outStatisticFieldName%22%3A%22value%22%7D%5D&having=&
 f=pjson
 ```
