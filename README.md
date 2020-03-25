@@ -73,7 +73,7 @@ Was bewirkt `outStatistics`?
 https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/Coronaf%C3%A4lle_in_den_Bundesl%C3%A4ndern/FeatureServer/0/query?f=json&where=1%3D1&returnGeometry=false&spatialRel=esriSpatialRelIntersects&outFields=*&groupByFieldsForStatistics=LAN_ew_GEN&orderByFields=value%20desc&outStatistics=%5B%7B%22statisticType%22%3A%22max%22%2C%22onStatisticField%22%3A%22faelle_100000_EW%22%2C%22outStatisticFieldName%22%3A%22value%22%7D%5D&cacheHint=true
 ```
 
-## Aggregiert Anzahl der Infizierte (Deutschland)
+## Aggregiert Anzahl der Infizierten (Deutschland)
 
 ```text
 https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/Coronaf%C3%A4lle_in_den_Bundesl%C3%A4ndern/FeatureServer/0/query?f=json&where=1%3D1&returnGeometry=false&spatialRel=esriSpatialRelIntersects&outFields=*&outStatistics=%5B%7B%22statisticType%22%3A%22sum%22%2C%22onStatisticField%22%3A%22Fallzahl%22%2C%22outStatisticFieldName%22%3A%22value%22%7D%5D&outSR=102100&cacheHint=true
@@ -81,9 +81,27 @@ https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/Coronaf%C3%A4
 
 ## Aggregierte Anzahl der Neuinfizierten (Deutschland)
 
-```text
+(```text
 https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?f=json&where=NeuerFall%3D1&returnGeometry=false&spatialRel=esriSpatialRelIntersects&outFields=*&outStatistics=%5B%7B%22statisticType%22%3A%22sum%22%2C%22onStatisticField%22%3A%22AnzahlFall%22%2C%22outStatisticFieldName%22%3A%22value%22%7D%5D&cacheHint=true
-```
+```)
+
+<pre>
+https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?
+where=Meldedatum%3C%3D%27<span style="color:red">03</span>%2F<span style="color:red">24</span>%2F<span style="color:red">2020</span>%27&
+outStatistics=%5B%7B%22statisticType%22%3A%22sum%22%2C%22onStatisticField%22%3A%22AnzahlFall%22%2C%22outStatisticFieldName%22%3A%22value%22%7D%5D&having=&
+f=pjson
+</pre>
+
+Über den Parameter `where` kann nach Datum gefiltert werden. `where=Meldedatum%3C%3D%2703%2F24%2F2020%27` steht für `Meldedatum<='03/24/2020'` - also alle Fälle bis einschließlich 24.03.2020.  
+
+Über den Parameter `outStatistics` kann man die Fälle summieren.
+
+Außerdem kann man hier nach Bundesland, Landkreis, Geschlecht, etc. filtern oder aggregieren.
+
+Siehe [API Explorer](https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?where=Meldedatum%3C%3D%2703%2F24%2F2020%27&objectIds=&time=&resultType=standard&outFields=*&returnIdsOnly=false&returnUniqueIdsOnly=false&returnCountOnly=false&returnDistinctValues=false&cacheHint=false&orderByFields=&groupByFieldsForStatistics=&outStatistics=%5B%7B%22statisticType%22%3A%22sum%22%2C%22onStatisticField%22%3A%22AnzahlFall%22%2C%22outStatisticFieldName%22%3A%22value%22%7D%5D&having=&resultOffset=&resultRecordCount=&sqlFormat=none&f=html),
+[Metadaten](https://services7.arcgis.com/mOBPykOjAyBO2ZKk/ArcGIS/rest/services/RKI_COVID19/FeatureServer/0)
+
+![](img/api_explorer.png)
 
 ## Aggregierte Anzahl der Todesfälle (Deutschland)
 
