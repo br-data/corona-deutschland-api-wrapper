@@ -1,0 +1,14 @@
+{
+  "name": "corona-deutschland-scraper",
+  "version": "0.0.1",
+  "description": "Scrape German Corona cases from RKI dashboard",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Steffen Kühne",
+  "license": "MIT",
+  "dependencies": {
+    "node-fetch": "^2.6.0"
+  }
+}
