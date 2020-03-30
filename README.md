@@ -26,7 +26,8 @@ Was bewirkt `resultOffset`?
 ```text
 https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/Coronaf%C3%A4lle_in_den_Bundesl%C3%A4ndern/FeatureServer/0/query?
   f=json&
-  where=1%3D1&returnGeometry=false&
+  where=1%3D1&
+  returnGeometry=false&
   spatialRel=esriSpatialRelIntersects&
   outFields=*&
   orderByFields=Fallzahl%20desc&
