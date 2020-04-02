@@ -1,0 +1,14 @@
+{
+  "name": "rki-corona-api",
+  "version": "0.0.1",
+  "description": "API wrapper for RKI_COVID19 API from Robert Koch-Institut",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Niels Ringler",
+  "license": "MIT",
+  "dependencies": {
+    "node-fetch": "^2.6.0"
+  }
+}
