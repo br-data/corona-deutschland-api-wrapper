@@ -1,3 +1,47 @@
+## RKI-WRAPPER
+
+Der RKI-Wrapper greift auf die API des Robert Koch-Instituts zu und gibt die ausgelieferten Daten in einer für Datawrapper geeigneten Form zurück.
+
+Der Wrapper holt in einer einzelnen Anfrage die Daten bis zum gewählten End-Datum gemeldeten Fälle und aggregiert die Fallzahlen pro Tag und wahlweise nach weiteren Feldern, wie Altersgruppe oder Landkreis. Im Anschluss berechnet er die kumulative Summe der Fallzahlen vom ersten Meldetag an (=2020-01-24).
+
+*Hinweis:* Um herauszufinden, welche Werte man in die Felder einsetzen kann, lohnt sich ein Blick in den [Überblick der Daten](https://npgeo-corona-npgeo-de.hub.arcgis.com/datasets/dd4580c810204019a7b8eb3e0b329dd6_0/data).
+
+### Beispiel
+
+```text
+https://europe-west3-brdata-niels.cloudfunctions.net/rkiApi/query?
+  format=csv&
+  group=Bundesland&bundesland=Bayern,Baden-Württemberg
+```
+
+### Parameter
+
+-	`startDate` *| optional | Default: '2020-01-24' (= erster Tag, den das RKI liefert)*: Gibt an, ab welchem Tag der Wrapper Daten zurück gibt. *Hinweis:* Die aggregierten Fallzahlen enthalten auch weiter zurückliegende Fälle als `fromDate`.
+
+-	`endDate` *| optional | Default: aktuelles Datum*: Gibt an, bis zu welchem Tag der Wrapper Daten zurück gibt.
+
+-	`group` *| optional*: Gibt an, nach welchem Feld aggregiert wird. *Hinweis:* Bis jetzt nur einzelene Felder wählbar, z.B. `group=Geschlecht`
+
+-	`format` *| optional | Default: json*: Wählt das Ausgabeformat. *Hinweis:* Für Datawrapper wähle `format=csv`.
+
+-	`geschlecht`, `altersgruppe`, `bundesland`, `landkreis` *| optional*: Filtert die entsprechenden Felder. Mehrfachauswahl ist möglich, z.B. gibt `bundesland=Bayern&geschlecht=M` die Anzahl der gemeldeten infizierten Männer in Bayern zurück. Mehrfachauswahl innerhalb der Felder ist auch möglich, z.B. `landkreis=SK München,Sk Hamburg`. 
+
+	- Bei Mehrfachauswahl innerhalb eines Feldes sind die Werte mit `,` ohne Leerzeichen anzugeben
+	
+	- Die Filter-Keys sind in Kleinbuchstaben anzugenben, z.B. `bundesland`
+	
+	- Alle Werte sind ohne Anführungszeichen anzugeben
+	
+	- - *Hinweis:* Die verschiedenen Filterfelder sind mit logischem `AND` verknüpft. Mehrfachauswahl innerhalb eines Feldes ist mit `OR`
+verknüpft.
+
+	- *Hinweis:* Ergänzend zur Filterung ist es fast immer sinnvoll auch den Parameter `group` mit einem der Filterfelder zu besetzen
+	
+	- *Hinweis:* Abweichung der Schreibweise macht den Filter wirkungslos
+ 
+
+
+
 ## RKI-API
 
 RKI: <https://experience.arcgis.com/experience/478220a4c454480e823b17327b2bf1d4>
