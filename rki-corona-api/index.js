@@ -4,33 +4,50 @@ const rkiBaseUrl = "https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/se
 
 exports.rkiApi = async function (req, res) {
   const query = req.query;
+  // console.log(query);
   // handle undefined values
   const startDate = query.startDate ? handleDateFormat(query.startDate) : "2020-01-24"; // "2020-01-24" is first that has data
-  const endDate = query.endDate ? handleDateFormat(query.endDate) : handleDateFormat(`${new Date().getFullYear()}-${new Date().getMonth() + 1}-${new Date().getDate()}`);
+  const endDate = query.endDate ? handleDateFormat(query.endDate) : new Date().toISOString().split('T')[0];
   const group = query.group ? query.group : "";
   const format = query.format ? query.format : "json";
   const filter = query.filter ? query.filter : "";  
-  const dateRange = getDateRange(startDate, endDate);
-  const rkiQueries = dateRange.
-    map(d => writeRkiQuery(d, filter, group));
-  const responses = await Promise.all(rkiQueries
-    .map(fetchJson))
-  const data = responses
-    // parse nested json
-    .map(d => d.features)
-    .map((d) => d.map(d => d.attributes))
-    // combine return values with dates
-    .map((d, i) => d.map(dd => Object.assign({date: dateRange[i]}, dd)))
-    // = flat()
-    .reduce((acc, val) => acc.concat(val), []);
+
+  const rkiQuery = writeRkiQuery(endDate, filter, group);
+  const responses = await fetchJson(rkiQuery);
+
+  let data = responses.features // parse json
+    .map(d => d.attributes);
+ 
+  // group data before summarize cumulative
+  data = groupBy(data, group);
+
+  // sort grouped object by date
+  Object.keys(data).forEach(key => data[key] = data[key].sort((a, b) => a.Meldedatum - b.Meldedatum));
+
+  // fill missing dates per group
+  Object.keys(data).forEach(key => data[key] = fillMissingDates(data[key]));
+
+  // change date format from integer to string
+  Object.keys(data).forEach(key => data[key] = data[key].map(d => {d.Meldedatum = new Date(d.Meldedatum).toISOString().split('T')[0]; return(d);}));
+
+  // sum values cumulative per group
+  Object.keys(data).forEach(key => {
+    let currentValue = 0;
+    data[key].map(d => d.sumValue = currentValue += d.value);
+  });
+
+  // flatten data object by removing group key
+  data = Object.values(data).reduce((acc, val) => acc.concat(val), []);
 
   if (format == "csv") {
-    // this messes up the "data" array :(
-    const spreadData = data.
-      map(d => spreadGroup(d, group));
-    const groupedData = groupBy(spreadData, "date").
-      map(arr => arr.reduce((acc, val) => Object.assign(acc, val)));
-    const response = jsonToCsv(groupedData);
+    // spread group values to columns
+    data.map(d => spreadGroup(d, group));
+
+    // merge same dates in one line
+    data = Object.values(groupBy(data, 'Meldedatum')).
+      map(arr => arr.reduce((acc, val) => Object.assign(acc, val),[]));      
+
+    const response = jsonToCsv(data);
     res.send(response);
   } else {
     const response = data;
@@ -48,27 +65,47 @@ function handleDateFormat(str) {
   return `${year}-${month}-${day}`;
 }
 
+function fillMissingDates(arr) {
+  const nextDay = new Date(arr[0].Meldedatum);
+  return arr.reduce((acc, val) => {
+    while(new Date(val.Meldedatum) - nextDay > 2 * 3600 * 1000) {
+      const missingDate = Object.assign({...val}, {value: 0, Meldedatum: nextDay.getTime()});
+      acc.push(missingDate)
+      nextDay.setDate(nextDay.getDate() + 1);
+    }
+    nextDay.setDate(nextDay.getDate() + 1);
+    return(acc.concat(val));
+  }, [])
+}
+
 function spreadGroup(obj, group) {
-// turns group value into new key: {value: 10, Geschlecht: "M"} => {M: 10}
-  const groupValue = obj[group];
-  obj[groupValue] = obj.value;
+// turns group value into new key: {sumValue: 10, Geschlecht: "M"} => {M: 10}
+  const groupValue = obj[group] || 'all';
+  obj[groupValue] = obj.sumValue;
   delete obj[group];
   delete obj.value;
-  return obj;
+  delete obj.sumValue;
+  return(obj);
 }
 
 const groupBy = function(arr, key) {
 // groups array of objects into array of arrays with grouped data
-  const groupedObject = arr
+  const group =  arr
     .reduce((acc, val) => {
       (acc[val[key]] = acc[val[key]] || []).push(val);
         return acc;
-    }, {})
-  return Object.values(groupedObject);
+    }, {});
+  
+  if(group.hasOwnProperty('undefined')) {
+    group.all = group.undefined;
+    delete group.undefined;
   }
 
+  return(group);
+}
+
 function jsonToCsv(json) {
-  const header = Object.keys(Object.assign({}, ...json));
+  const header = Object.keys(Object.assign({}, ...json))
   const rows = json.map(d => header.map(name => d[name]));
   const csv = [header, ...rows]
     .map(d => d.join(','))
@@ -76,57 +113,39 @@ function jsonToCsv(json) {
     return csv;
 }
 
-function getDateRange(startDate, endDate) {
-  const startTime = new Date(startDate).getTime();
-  const endTime = new Date(endDate).getTime();
-  const msPerDay = 1000 * 3600 * 24;
-  const nDays = (endTime - startTime) / msPerDay + 1;
-  const dateRange = Array(nDays)
-    .fill(startDate)
-    .map((d, i) => {
-      const date = new Date(d);
-      // add i day(s) to date
-      date.setDate(date.getDate() + i)
-      return(`${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`)
-    })
+function writeRkiQuery(endDate, filter, group) {
+  const filterString = writeFilterString(filter);
+  const rkiQuerySting = `${rkiBaseUrl}` +
+    `where=Meldedatum<='${endDate}'` + `${filterString}` +
+    `&orderByFields=Meldedatum` + 
+    `&groupByFieldsForStatistics=Meldedatum${group.length > 0 ? ',' + group : ''}` +
+    `&outStatistics=[{"statisticType":"sum","onStatisticField":"AnzahlFall","outStatisticFieldName":"value"}]` +
+    `&f=pjson`;
 
-  return(dateRange)
+    return(rkiQuerySting)
 }
 
-function writeRkiQuery(endDate, filter, group) {
+function writeFilterString(filter) {
   let filterString = "";
   if (filter.length > 0) {
+    // handle multiple filters
     if(Array.isArray(filter)) {
       filterString = filter.
         reduce((acc, val) => acc + `+OR+${val.split(':')[0]}=${val.split(':')[1]}`, '')
         // remove first '+OR+'
         .substring(4);
       filterString = `+AND+(${filterString})`;
+      // handle single filter
     } else {
       // single filter comes as string
       filterString = `+AND+${filter.split(':')[0]}=${filter.split(':')[1]}`
     }
-  } 
-  const rkiQuerySting = `${rkiBaseUrl}` +
-    `where=Meldedatum<='${endDate}'` + `${filterString}` +
-    `&groupByFieldsForStatistics=${group}` +
-    `&outStatistics=[{"statisticType":"sum","onStatisticField":"AnzahlFall","outStatisticFieldName":"value"}]` +
-    `&f=pjson`;
-
-  return(rkiQuerySting)
+  }
+  return(filterString);
 }
 
 async function fetchJson(url) {
   return fetch(url)
     .then(res => res.json())
     .catch(console.error);
-}
-
-function handleResponse(req, res, result) {
-  const isCsv = req.query.filetype === 'csv';
-  const contentType = isCsv ? 'text/csv' : 'application/json';
-  const response = isCsv ? jsonToCsv(result) : result;
-
-  res.set('Content-Type', contentType);
-  res.send(response);
 }
