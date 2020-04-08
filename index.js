@@ -24,11 +24,10 @@ exports.rkiApi = async function (req, res) {
 
   const validKeys = ['startDate', 'endDate', 'geschlecht', 'altersgruppe', 'bundesland', 'landkreis', 'regierungsbezirk', 'group', 'format'];
   if (Object.keys(query).some(key => !validKeys.includes(key))) {
-    res.send('Unknown parameters in URL. Please check spelling. Keys are lower-case, values are upper-case.');
-
+    res.send({error: 'Unknown parameters in URL. Please check spelling. Keys are lower-case, values are upper-case.'});
   }
   if ((regierungsbezirk != '' || group == 'Regierungsbezirk') && bundesland != 'Bayern') {
-    res.send('Bitte wählen Sie "bundesland=Bayern" in der URL!');
+    res.send({error: 'Bitte wählen Sie "bundesland=Bayern" in der URL!'});
   }
 
   let data = await (async () => {
@@ -198,7 +197,7 @@ function writeFilterQuery(filter) {
 
 function writeRkiQuery(endDate, filterQuery, group) {
   const rkiQuery = `${rkiBaseUrl}` +
-    `where=Meldedatum<='${endDate}'` + `${filterQuery}` +
+    `where=Meldedatum<='${endDate}'+AND+AnzahlFall>0` + `${filterQuery}` +
     `&orderByFields=Meldedatum` + 
     `&groupByFieldsForStatistics=Meldedatum${group.length > 0 ? ',' + group : ''}` +
     `&outStatistics=[{"statisticType":"sum","onStatisticField":"AnzahlFall","outStatisticFieldName":"value"}]` +
