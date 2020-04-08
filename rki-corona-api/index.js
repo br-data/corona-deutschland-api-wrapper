@@ -1,5 +1,7 @@
 const fetch = require('node-fetch');
 
+const districtsBy = require('./lib/govs-counties-by.json');
+
 const rkiBaseUrl = 'https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?'
 
 exports.rkiApi = async function (req, res) {
@@ -13,24 +15,40 @@ exports.rkiApi = async function (req, res) {
   const altersgruppe = query.altersgruppe ? query.altersgruppe : '';
   const bundesland = query.bundesland ? query.bundesland : '';
   const landkreis = query.landkreis ? query.landkreis : '';
-  const filter = {geschlecht, altersgruppe, bundesland, landkreis};
-  // remove empty filters
-  Object.keys(filter).forEach(key => {if(filter[key] == '') {
-    delete filter[key];
-  }})
-  const filterQuery = Object.keys(filter).length == 0 ? '' : writeFilterQuery(filter);
-  // const filterQuery = writeFilterQuery(filter);
-  const group = query.group ? query.group : '';
+  const regierungsbezirk = query.regierungsbezirk ? query.regierungsbezirk : '';
+  const filterQuery = writeFilterQuery({geschlecht, altersgruppe, bundesland, landkreis});
 
+  const group = query.group ? query.group : '';
   const format = query.format ? query.format : 'json';
 
-  const rkiQuery = writeRkiQuery(endDate, filterQuery, group);
-  // console.log(rkiQuery);
-  const response = await fetchJson(rkiQuery);
+  let data = await (async () => {
+    const rkiQuery = group == 'Regierungsbezirk' ?
+      writeRkiQuery(endDate, filterQuery, 'Landkreis') :
+      writeRkiQuery(endDate, filterQuery, group);
 
-  let data = response.features // parse json
-    .map(d => d.attributes);
- 
+    // call RKI-API
+    let response = await fetchJson(rkiQuery)
+      .then(res => res.features // parsed json
+        .map(d => d.attributes));
+    
+    if (group == 'Regierungsbezirk') {
+      // join by 'Landkreis' => add government district
+      response.map(d => {
+        d.Regierungsbezirk = districtsBy
+          .find(dd => dd.landkreis == d.Landkreis).regBez;
+      });
+      response.map(d => { delete d.Landkreis });
+      response = Object.values(groupBy(response, 'Regierungsbezirk'))
+        .map(arrDistrict => Object.values(groupBy(arrDistrict, 'Meldedatum'))
+          .map(arrDate => arrDate
+            .reduce((acc, val) => Object.assign(acc, {value: acc.value + val.value}))
+          ))
+        .reduce((acc, val) => acc.concat(val), []);
+    }
+
+    return(response);
+  })();
+
   // group data before summarize cumulative
   data = groupBy(data, group);
 
@@ -123,17 +141,22 @@ function jsonToCsv(json) {
 }
 
 function writeRkiQuery(endDate, filterQuery, group) {
-  const rkiQuerySting = `${rkiBaseUrl}` +
+  const rkiQuery = `${rkiBaseUrl}` +
     `where=Meldedatum<='${endDate}'` + `${filterQuery}` +
     `&orderByFields=Meldedatum` + 
     `&groupByFieldsForStatistics=Meldedatum${group.length > 0 ? ',' + group : ''}` +
     `&outStatistics=[{"statisticType":"sum","onStatisticField":"AnzahlFall","outStatisticFieldName":"value"}]` +
     `&f=pjson`;
 
-    return(rkiQuerySting);
+    return(rkiQuery);
 }
 
 function writeFilterQuery(filter) {
+  // remove empty filters
+  Object.keys(filter).forEach(key => {if(filter[key] == '') {delete filter[key];}})
+  if (Object.keys(filter).length == 0) {
+    return('');
+  }
   const filterParam = Object.keys(filter);
 
   filterParam.forEach(key => filter[key] = filter[key].split(','));
