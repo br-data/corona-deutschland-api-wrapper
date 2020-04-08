@@ -22,6 +22,11 @@ exports.rkiApi = async function (req, res) {
   const group = query.group ? query.group : '';
   const format = query.format ? query.format : 'json';
 
+  const validKeys = ['startDate', 'endDate', 'geschlecht', 'altersgruppe', 'bundesland', 'landkreis', 'regierungsbezirk', 'group', 'format'];
+  if (Object.keys(query).some(key => !validKeys.includes(key))) {
+    res.send('Unknown parameters in URL. Please check spelling. Keys are lower-case, values are upper-case.');
+
+  }
   if ((regierungsbezirk != '' || group == 'Regierungsbezirk') && bundesland != 'Bayern') {
     res.send('Bitte wählen Sie "bundesland=Bayern" in der URL!');
   }
