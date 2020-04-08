@@ -16,10 +16,15 @@ exports.rkiApi = async function (req, res) {
   const bundesland = query.bundesland ? query.bundesland : '';
   const landkreis = query.landkreis ? query.landkreis : '';
   const regierungsbezirk = query.regierungsbezirk ? query.regierungsbezirk : '';
+
   const filterQuery = writeFilterQuery({geschlecht, altersgruppe, bundesland, landkreis});
 
   const group = query.group ? query.group : '';
   const format = query.format ? query.format : 'json';
+
+  if ((regierungsbezirk != '' || group == 'Regierungsbezirk') && bundesland != 'Bayern') {
+    res.send('Bitte wählen Sie "bundesland=Bayern" in der URL!');
+  }
 
   let data = await (async () => {
     const rkiQuery = group == 'Regierungsbezirk' ?
@@ -48,30 +53,52 @@ exports.rkiApi = async function (req, res) {
 
     return(response);
   })();
+  
+  data = analyse(data);
 
-  // group data before summarize cumulative
-  data = groupBy(data, group);
+  data = postFilter(data);
 
-  // sort grouped object by date
-  Object.keys(data).forEach(key => data[key] = data[key].sort((a, b) => a.Meldedatum - b.Meldedatum));
+  function analyse(data) {
+    // @param {Array} data
+    // @return {Array}
 
-  // fill missing dates per group
-  Object.keys(data).forEach(key => data[key] = fillMissingDates(data[key]));
+    // group data before summarize cumulative
+    data = groupBy(data, group);
 
-  // change date format from integer to string
-  Object.keys(data).forEach(key => data[key] = data[key].map(d => {d.Meldedatum = new Date(d.Meldedatum).toISOString().split('T')[0]; return(d);}));
+    // sort grouped object by date
+    Object.keys(data).forEach(key => data[key] = data[key].sort((a, b) => a.Meldedatum - b.Meldedatum));
 
-  // sum values cumulative per group
-  Object.keys(data).forEach(key => {
-    let currentValue = 0;
-    data[key].map(d => d.sumValue = currentValue += d.value);
-  });
+    // fill missing dates per group
+    Object.keys(data).forEach(key => data[key] = fillMissingDates(data[key]));
 
-  // flatten data object by removing group key
-  data = Object.values(data).reduce((acc, val) => acc.concat(val), []);
+    // change date format from integer to string
+    Object.keys(data).forEach(key => data[key] = data[key].map(d => {d.Meldedatum = new Date(d.Meldedatum).toISOString().split('T')[0]; return(d);}));
 
-  // filter dates before 'startDate'
-  data = data.filter(d => d.Meldedatum >= startDate);
+    // sum values cumulative per group
+    Object.keys(data).forEach(key => {
+      let currentValue = 0;
+      data[key].map(d => d.sumValue = currentValue += d.value);
+    });
+
+    // flatten data object by removing group key
+    data = Object.values(data).reduce((acc, val) => acc.concat(val), []);
+
+    return(data);
+  }
+
+  function postFilter(data) {
+    // @param {Array} data
+    // @return {Array}
+
+    // filter dates before 'startDate'
+    data = data.filter(d => d.Meldedatum >= startDate);
+    // filter gov district
+    if (regierungsbezirk != '') {
+      data = data.filter(d => regierungsbezirk.split(',').includes(d.Regierungsbezirk));
+    }
+
+    return(data);
+  }
 
   if (format == 'csv') {
     // spread group values to columns
@@ -88,13 +115,10 @@ exports.rkiApi = async function (req, res) {
   }
 }
 
-function handleDateFormat(str) {
-// adds 0 to 1-digit day or month values
-  const year = str.split('-')[0];
-  const month = str.split('-')[1].length == 1 ? `0${str.split('-')[1]}` : str.split('-')[1];
-  const day = str.split('-')[2].length == 1 ? `0${str.split('-')[2]}` : str.split('-')[2];
-
-  return `${year}-${month}-${day}`;
+async function fetchJson(url) {
+  return fetch(encodeURI(url))
+    .then(res => res.json())
+    .catch(console.error);
 }
 
 function fillMissingDates(arr) {
@@ -110,18 +134,8 @@ function fillMissingDates(arr) {
   }, [])
 }
 
-function spreadGroup(obj, group) {
-// turns group value into new key: {sumValue: 10, Geschlecht: 'M'} => {M: 10}
-  const groupValue = obj[group] || 'all';
-  obj[groupValue] = obj.sumValue;
-  delete obj[group];
-  delete obj.value;
-  delete obj.sumValue;
-  return(obj);
-}
-
 const groupBy = function(arr, key) {
-// groups array of objects into array of arrays with grouped data
+  // groups array of objects into array of arrays with grouped data
   const group =  arr
     .reduce((acc, val) => {
       (acc[val[key]] = acc[val[key]] || []).push(val);
@@ -129,6 +143,15 @@ const groupBy = function(arr, key) {
     }, {});
 
   return(group);
+}
+
+function handleDateFormat(str) {
+// adds 0 to 1-digit day or month values
+  const year = str.split('-')[0];
+  const month = str.split('-')[1].length == 1 ? `0${str.split('-')[1]}` : str.split('-')[1];
+  const day = str.split('-')[2].length == 1 ? `0${str.split('-')[2]}` : str.split('-')[2];
+
+  return `${year}-${month}-${day}`;
 }
 
 function jsonToCsv(json) {
@@ -140,15 +163,14 @@ function jsonToCsv(json) {
     return(csv);
 }
 
-function writeRkiQuery(endDate, filterQuery, group) {
-  const rkiQuery = `${rkiBaseUrl}` +
-    `where=Meldedatum<='${endDate}'` + `${filterQuery}` +
-    `&orderByFields=Meldedatum` + 
-    `&groupByFieldsForStatistics=Meldedatum${group.length > 0 ? ',' + group : ''}` +
-    `&outStatistics=[{"statisticType":"sum","onStatisticField":"AnzahlFall","outStatisticFieldName":"value"}]` +
-    `&f=pjson`;
-
-    return(rkiQuery);
+function spreadGroup(obj, group) {
+// turns group value into new key: {sumValue: 10, Geschlecht: 'M'} => {M: 10}
+  const groupValue = obj[group] || 'all';
+  obj[groupValue] = obj.sumValue;
+  delete obj[group];
+  delete obj.value;
+  delete obj.sumValue;
+  return(obj);
 }
 
 function writeFilterQuery(filter) {
@@ -169,8 +191,13 @@ function writeFilterQuery(filter) {
   return(`+AND+` + Object.values(filter).join('+AND+'));
 }
 
-async function fetchJson(url) {
-  return fetch(encodeURI(url))
-    .then(res => res.json())
-    .catch(console.error);
+function writeRkiQuery(endDate, filterQuery, group) {
+  const rkiQuery = `${rkiBaseUrl}` +
+    `where=Meldedatum<='${endDate}'` + `${filterQuery}` +
+    `&orderByFields=Meldedatum` + 
+    `&groupByFieldsForStatistics=Meldedatum${group.length > 0 ? ',' + group : ''}` +
+    `&outStatistics=[{"statisticType":"sum","onStatisticField":"AnzahlFall","outStatisticFieldName":"value"}]` +
+    `&f=pjson`;
+
+    return(rkiQuery);
 }
