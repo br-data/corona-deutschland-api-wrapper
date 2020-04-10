@@ -1,14 +1,41 @@
 # Corona Deutschland Scraper (RKI)
 
-## Daten
+Der RKI-Wrapper greift auf die API des Robert Koch-Instituts zu und gibt die ausgelieferten Daten in einer für Datawrapper geeigneten Form zurück.
 
-RKI: <https://experience.arcgis.com/experience/478220a4c454480e823b17327b2bf1d4>
+Der Wrapper holt in einer einzelnen Anfrage die Daten bis zum gewählten End-Datum gemeldeten Fälle und aggregiert die Fallzahlen pro Tag und wahlweise nach weiteren Feldern, wie Altersgruppe oder Landkreis. Im Anschluss berechnet er die kumulative Summe der Fallzahlen vom ersten Meldetag an (=2020-01-24).
+
+*Hinweis:* Um herauszufinden, welche Werte man in die Felder einsetzen kann, lohnt sich ein Blick in den [Überblick der Daten](https://npgeo-corona-npgeo-de.hub.arcgis.com/datasets/dd4580c810204019a7b8eb3e0b329dd6_0/data).
 
 Eine detaillierte Beschreibung der RKI-API findet sich in [RKI-API.md](./RKI-API.md):
 
+## Beispiel
+
+```text
+https://europe-west3-brdata-corona.cloudfunctions.net/rkiApi/query?
+  format=csv&
+  group=Bundesland&bundesland=Bayern,Baden-Württemberg
+```
+
+## Parameter
+
+- `startDate` *| optional | Default: '2020-01-24' (= erster Tag, den das RKI liefert)*: Gibt an, ab welchem Tag der Wrapper Daten zurück gibt. *Hinweis:* Die aggregierten Fallzahlen enthalten auch weiter zurückliegende Fälle als `fromDate`.
+- `endDate` *| optional | Default: aktuelles Datum*: Gibt an, bis zu welchem Tag der Wrapper Daten zurück gibt
+- `group` *| optional*: Gibt an, nach welchem Feld aggregiert wird. *Hinweis:* Bis jetzt nur einzelne Felder wählbar, z.B. `group=Geschlecht`.  Falls `group=Regierungsbezirk` gesetzt ist, muss auch der Filter `bundesland=Bayern` gesetzt sein
+- `format` *| optional | Default: json*: Wählt das Ausgabeformat. *Hinweis:* Für Datawrapper wähle `format=csv`
+- `geschlecht`, `altersgruppe`, `bundesland`, `landkreis`, `regierungsbezirk` *| optional*: Filtert die entsprechenden Felder. Mehrfachauswahl ist möglich, z.B. gibt `bundesland=Bayern&geschlecht=M` die Anzahl der gemeldeten infizierten Männer in Bayern zurück. Mehrfachauswahl innerhalb der Felder ist auch möglich, z.B. `landkreis=SK München,Sk Hamburg`
+
+Allgemein Hinweise zur Verwendung der Parameter:
+
+- Bei Mehrfachauswahl innerhalb eines Feldes sind die Werte mit `,` ohne Leerzeichen anzugeben.
+- Die Filter-Keys sind in Kleinbuchstaben anzugeben, z.B. `bundesland`.
+- Alle Werte sind ohne Anführungszeichen anzugeben.
+- Die verschiedenen Filterfelder sind mit logischem `AND` verknüpft. Mehrfachauswahl innerhalb eines Feldes ist mit `OR` verknüpft.
+- Abweichung der Schreibweise macht den Filter wirkungslos.
+- Ergänzend zur Filterung ist es fast immer sinnvoll auch den Parameter `group` mit einem der Filterfelder zu besetzen.
+
 ## Verwendung
 
-Diese Anleitung geht davon aus, dass du bereits ein Google Cloud-Konto und ein Rechnungskonto dafür eingericht hast. Außerdem solltest du das Google Cloud-Kommandzeilenwerkzeug [installiert](https://cloud.google.com/sdk/install) und mit deinem Benutzerkonto [verknüpft](https://cloud.google.com/sdk/docs/initializing) haben.
+Diese Anleitung geht davon aus, dass bereits ein Google Cloud-Konto vorhanden und ein Rechnungskonto eingerichtet ist. Außerdem sollte das Google Cloud-Kommandzeilenwerkzeug [installiert](https://cloud.google.com/sdk/install) und mit einem Benutzerkonto [verknüpft](https://cloud.google.com/sdk/docs/initializing) sein.
 
 ### Projekt anlegen
 

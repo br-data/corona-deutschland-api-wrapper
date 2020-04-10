@@ -1,6 +1,7 @@
 const fetch = require('node-fetch');
 
-const districtsBy = require('./lib/govs-counties-by.json');
+const jsonToCsv = require('./lib/json-to-csv');
+const districtsBy = require('./data/govs-counties-by.json');
 
 const rkiBaseUrl = 'https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?'
 
@@ -20,9 +21,9 @@ exports.rkiApi = async function (req, res) {
   const filterQuery = writeFilterQuery({geschlecht, altersgruppe, bundesland, landkreis});
 
   const group = query.group ? query.group : '';
-  const format = query.format ? query.format : 'json';
+  const filetype = query.filetype ? query.filetype : 'json';
 
-  const validKeys = ['startDate', 'endDate', 'geschlecht', 'altersgruppe', 'bundesland', 'landkreis', 'regierungsbezirk', 'group', 'format'];
+  const validKeys = ['startDate', 'endDate', 'geschlecht', 'altersgruppe', 'bundesland', 'landkreis', 'regierungsbezirk', 'group', 'filetype'];
   if (Object.keys(query).some(key => !validKeys.includes(key))) {
     res.send({error: 'Unknown parameters in URL. Please check spelling. Keys are lower-case, values are upper-case.'});
   }
@@ -58,53 +59,11 @@ exports.rkiApi = async function (req, res) {
     return(response);
   })();
   
-  data = analyse(data);
+  data = analyseData(data, group);
 
-  data = postFilter(data);
+  data = filterData(data, regierungsbezirk, startDate);
 
-  function analyse(data) {
-    // @param {Array} data
-    // @return {Array}
-
-    // group data before summarize cumulative
-    data = groupBy(data, group);
-
-    // sort grouped object by date
-    Object.keys(data).forEach(key => data[key] = data[key].sort((a, b) => a.Meldedatum - b.Meldedatum));
-
-    // fill missing dates per group
-    Object.keys(data).forEach(key => data[key] = fillMissingDates(data[key]));
-
-    // change date format from integer to string
-    Object.keys(data).forEach(key => data[key] = data[key].map(d => {d.Meldedatum = new Date(d.Meldedatum).toISOString().split('T')[0]; return(d);}));
-
-    // sum values cumulative per group
-    Object.keys(data).forEach(key => {
-      let currentValue = 0;
-      data[key].map(d => d.sumValue = currentValue += d.value);
-    });
-
-    // flatten data object by removing group key
-    data = Object.values(data).reduce((acc, val) => acc.concat(val), []);
-
-    return(data);
-  }
-
-  function postFilter(data) {
-    // @param {Array} data
-    // @return {Array}
-
-    // filter dates before 'startDate'
-    data = data.filter(d => d.Meldedatum >= startDate);
-    // filter gov district
-    if (regierungsbezirk != '') {
-      data = data.filter(d => regierungsbezirk.split(',').includes(d.Regierungsbezirk));
-    }
-
-    return(data);
-  }
-
-  if (format == 'csv') {
+  if (filetype == 'csv') {
     // spread group values to columns
     data.map(d => spreadGroup(d, group));
 
@@ -123,6 +82,42 @@ async function fetchJson(url) {
   return fetch(encodeURI(url))
     .then(res => res.json())
     .catch(console.error);
+}
+
+function analyseData(data, group) {
+  // group data before summarize cumulative
+  data = groupBy(data, group);
+
+  // sort grouped object by date
+  Object.keys(data).forEach(key => data[key] = data[key].sort((a, b) => a.Meldedatum - b.Meldedatum));
+
+  // fill missing dates per group
+  Object.keys(data).forEach(key => data[key] = fillMissingDates(data[key]));
+
+  // change date format from integer to string
+  Object.keys(data).forEach(key => data[key] = data[key].map(d => {d.Meldedatum = new Date(d.Meldedatum).toISOString().split('T')[0]; return(d);}));
+
+  // sum values cumulative per group
+  Object.keys(data).forEach(key => {
+    let currentValue = 0;
+    data[key].map(d => d.sumValue = currentValue += d.value);
+  });
+
+  // flatten data object by removing group key
+  data = Object.values(data).reduce((acc, val) => acc.concat(val), []);
+
+  return(data);
+}
+
+function filterData(data, regierungsbezirk, startDate) {
+  // filter dates before 'startDate'
+  data = data.filter(d => d.Meldedatum >= startDate);
+  // filter gov district
+  if (regierungsbezirk != '') {
+    data = data.filter(d => regierungsbezirk.split(',').includes(d.Regierungsbezirk));
+  }
+
+  return(data);
 }
 
 function fillMissingDates(arr) {
@@ -156,15 +151,6 @@ function handleDateFormat(str) {
   const day = str.split('-')[2].length == 1 ? `0${str.split('-')[2]}` : str.split('-')[2];
 
   return `${year}-${month}-${day}`;
-}
-
-function jsonToCsv(json) {
-  const header = Object.keys(Object.assign({}, ...json))
-  const rows = json.map(d => header.map(name => d[name]));
-  const csv = [header, ...rows]
-    .map(d => d.join(','))
-    .join('\r\n');
-    return(csv);
 }
 
 function spreadGroup(obj, group) {
