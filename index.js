@@ -197,7 +197,7 @@ function writeFilterQuery(filter) {
 
 function writeRkiQuery(endDate, filterQuery, group) {
   const rkiQuery = `${rkiBaseUrl}` +
-    `where=Meldedatum<='${endDate}'+AND+AnzahlFall>0` + `${filterQuery}` +
+    `where=Meldedatum<='${endDate}'` + `${filterQuery}` +
     `&orderByFields=Meldedatum` + 
     `&groupByFieldsForStatistics=Meldedatum${group.length > 0 ? ',' + group : ''}` +
     `&outStatistics=[{"statisticType":"sum","onStatisticField":"AnzahlFall","outStatisticFieldName":"value"}]` +
