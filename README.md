@@ -8,15 +8,13 @@ Der Wrapper holt in einer einzelnen Anfrage die Daten bis zum gewählten End-Dat
 
 Eine detaillierte Beschreibung der RKI-API findet sich in [RKI-API.md](./RKI-API.md):
 
-## Beispiel
+## API
 
-```text
-https://europe-west3-brdata-corona.cloudfunctions.net/rkiApi/query?
-  format=csv&
-  group=Bundesland&bundesland=Bayern,Baden-Württemberg
-```
+Für die Verwendung der Daten in Apps und interaktiven Grafiken (Datawrapper) stellen wir einen API bereit, die das Abfragen der RKI-Daten nach bestimmten Parametern (Zeitpunkt, Bundesland, Dateiformat) ermöglicht.
 
-## Parameter
+**URL:** <https://europe-west3-brdata-corona.cloudfunctions.net/rkiApi/>
+
+### Parameter
 
 - `startDate` *| optional | Default: '2020-01-24' (= erster Tag, den das RKI liefert)*: Gibt an, ab welchem Tag der Wrapper Daten zurück gibt. *Hinweis:* Die aggregierten Fallzahlen enthalten auch weiter zurückliegende Fälle als `fromDate`.
 - `endDate` *| optional | Default: aktuelles Datum*: Gibt an, bis zu welchem Tag der Wrapper Daten zurück gibt
@@ -32,6 +30,14 @@ Allgemein Hinweise zur Verwendung der Parameter:
 - Die verschiedenen Filterfelder sind mit logischem `AND` verknüpft. Mehrfachauswahl innerhalb eines Feldes ist mit `OR` verknüpft.
 - Abweichung der Schreibweise macht den Filter wirkungslos.
 - Ergänzend zur Filterung ist es fast immer sinnvoll auch den Parameter `group` mit einem der Filterfelder zu besetzen.
+
+### Beispiele
+
+```text
+https://europe-west3-brdata-corona.cloudfunctions.net/rkiApi/query?
+  format=csv&
+  group=Bundesland&bundesland=Bayern,Baden-Württemberg
+```
 
 ## Verwendung
 
@@ -59,7 +65,7 @@ Google Cloud Function für das aktuelle Projekt aktivieren:
 $ gcloud services enable cloudfunctions.googleapis.com
 ```
 
-Rechenzentrum *europe-west3* (Frankfurt) als Ziel für das Funktions-Deployment festlegen. Das gewählte Rechenzentrum muss identisch sein, mit dem Rechenzentrum für die Firestore-Datenbank:
+Rechenzentrum *europe-west3* (Frankfurt) als Ziel für das Funktions-Deployment festlegen.
 
 ```console
 $ gcloud config set functions/region europe-west3
