@@ -144,3 +144,5 @@ $ curl -X GET 'localhost:8080?germany/cases?filetype=csv'
 ## Verbesserungsvorschläge
 
 - Eigene Endpunkte für Fallzahlen und Todesfälle hinzufügen
+- Error-Handling in eigene Funktion `handleError()` ausgliedern
+- CSV-Magie, wie `spreadGroup()`, nach in Methode `jsonToCsv()` verschieben
