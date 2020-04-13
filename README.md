@@ -33,10 +33,54 @@ Allgemein Hinweise zur Verwendung der Parameter:
 
 ### Beispiele
 
+Entwicklung der Fallzahlen für Deutschland ab dem 12.03.2020 abfragen:
+
 ```text
-https://europe-west3-brdata-corona.cloudfunctions.net/rkiApi/query?
-  format=csv&
-  group=Bundesland&bundesland=Bayern,Baden-Württemberg
+https://europe-west3-brdata-corona.cloudfunctions.net/rkiApi/query
+  ?startDate=2020-03-12
+````
+
+Entwicklung der Fallzahlen für Bayern abfragen:
+
+```text
+https://europe-west3-brdata-corona.cloudfunctions.net/rkiApi/query
+  ?group=Bundesland
+  &bundesland=Bayern
+````
+
+Entwicklung der Fallzahlen für alle bayerischen Regierungsbezirke abfragen:
+
+```text
+https://europe-west3-brdata-corona.cloudfunctions.net/rkiApi/query
+  ?group=Regierungsbezirk
+  &bundesland=Bayern
+```
+
+Entwicklung der Fallzahlen für drei spezifische Regierungsbezirke (Mittelfranken, Oberfranken, Unterfranken) als CSV-Tabelle abfragen:
+
+```text
+https://europe-west3-brdata-niels.cloudfunctions.net/rkiApi/query
+  ?group=Regierungsbezirk
+  &bundesland=Bayern
+  &regierungsbezirk=Mittelfranken,Oberfranken,Unterfranken
+  &filetype=csv
+```
+
+Entwicklung der Fallzahlen für alle bayerischen Landkreise abfragen:
+
+```text
+https://europe-west3-brdata-corona.cloudfunctions.net/rkiApi/query
+  ?group=Landkreis
+  &bundesland=Bayern
+```
+
+Entwicklung der Fallzahlen für den Landkreis Tirschenreuth abfragen:
+
+```text
+https://europe-west3-brdata-corona.cloudfunctions.net/rkiApi/query
+  ?group=Landkreis
+  &bundesland=Bayern
+  &landkreis=LK Tirschenreuth
 ```
 
 ## Verwendung
@@ -96,3 +140,7 @@ API-Anfrage an die aktivierte Funktion stellen (Beispiel):
 ```console
 $ curl -X GET 'localhost:8080?germany/cases?filetype=csv'
 ```
+
+## Verbesserungsvorschläge
+
+- Eigene Endpunkte für Fallzahlen und Todesfälle hinzufügen
