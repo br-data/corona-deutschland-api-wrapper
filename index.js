@@ -1,16 +1,15 @@
 const fetch = require('node-fetch');
 
 const jsonToCsv = require('./lib/json-to-csv');
-const districtsBy = require('./data/govs-counties-by.json');
+const counties = require('./data/counties.json');
 
 const rkiBaseUrl = 'https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?'
 
 exports.rkiApi = async function (req, res) {
   const query = req.query;
-  // console.log(query)
 
-  // handle undefined values
-  const startDate = query.startDate ? handleDateFormat(query.startDate) : '2020-01-24'; // '2020-01-24' is first that has data
+  // '2020-01-24' is first date that has data
+  const startDate = query.startDate ? handleDateFormat(query.startDate) : '2020-01-24';
   const endDate = query.endDate ? handleDateFormat(query.endDate) : new Date().toISOString().split('T')[0];
   const geschlecht = query.geschlecht ? query.geschlecht : '';
   const altersgruppe = query.altersgruppe ? query.altersgruppe : '';
@@ -19,7 +18,6 @@ exports.rkiApi = async function (req, res) {
   const regierungsbezirk = query.regierungsbezirk ? query.regierungsbezirk : '';
 
   const filterQuery = writeFilterQuery({geschlecht, altersgruppe, bundesland, landkreis});
-
   const group = query.group ? query.group : '';
   const filetype = query.filetype ? query.filetype : 'json';
 
@@ -31,48 +29,22 @@ exports.rkiApi = async function (req, res) {
     res.send({error: 'Bitte wählen Sie "bundesland=Bayern" in der URL!'});
   }
 
-  let data = await (async () => {
-    const rkiQuery = group == 'Regierungsbezirk' ?
-      writeRkiQuery(endDate, filterQuery, 'Landkreis') :
-      writeRkiQuery(endDate, filterQuery, group);
+  // Set CORS header to allow all origins
+  res.set('Access-Control-Allow-Origin', '*');
 
-    // call RKI-API
-    let response = await fetchJson(rkiQuery)
-      .then(res => res.features // parsed json
-        .map(d => d.attributes));
-    
-    if (group == 'Regierungsbezirk') {
-      // join by 'Landkreis' => add government district
-      response.map(d => {
-        d.Regierungsbezirk = districtsBy
-          .find(dd => dd.landkreis == d.Landkreis).regBez;
-      });
-      response.map(d => { delete d.Landkreis });
-      response = Object.values(groupBy(response, 'Regierungsbezirk'))
-        .map(arrDistrict => Object.values(groupBy(arrDistrict, 'Meldedatum'))
-          .map(arrDate => arrDate
-            .reduce((acc, val) => Object.assign(acc, {value: acc.value + val.value}))
-          ))
-        .reduce((acc, val) => acc.concat(val), []);
-    }
-
-    return(response);
-  })();
-  
-  data = analyseData(data, group);
-
-  data = filterData(data, regierungsbezirk, startDate);
+  const data = await getData(filterQuery, group, endDate);
+  const analysedData = analyseData(data, group);
+  const filteredData = filterData(analysedData, regierungsbezirk, startDate);
 
   if (filetype == 'csv') {
-    // spread group values to columns
-    data.map(d => spreadGroup(d, group));
+    // Spread group values to columns
+    const spreadedData = filteredData.map(d => spreadGroup(d, group));
 
-    // merge same dates in one line
-    data = Object.values(groupBy(data, 'Meldedatum')).
-      map(arr => arr.reduce((acc, val) => Object.assign(acc, val),[]));      
+    // Merge same dates in one line
+    const mergedData = Object.values(groupBy(spreadedData, 'Meldedatum')).
+      map(arr => arr.reduce((acc, val) => Object.assign(acc, val),[]));
 
-    data = jsonToCsv(data);
-    res.send(data);
+    res.send(jsonToCsv(mergedData));
   } else {
     res.send(data);
   }
@@ -82,6 +54,34 @@ async function fetchJson(url) {
   return fetch(encodeURI(url))
     .then(res => res.json())
     .catch(console.error);
+}
+
+async function getData(filterQuery, group, endDate) {
+  const rkiQuery = (group == 'Regierungsbezirk') ?
+    writeRkiQuery(endDate, filterQuery, 'Landkreis') :
+    writeRkiQuery(endDate, filterQuery, group);
+
+  // Call RKI-API
+  let response = await fetchJson(rkiQuery)
+    .then(res => res.features // parsed json
+      .map(d => d.attributes));
+  
+  if (group == 'Regierungsbezirk') {
+    // Join by 'Landkreis' => add government district
+    response.map(d => {
+      d.Regierungsbezirk = counties
+        .find(dd => dd.landkreis == d.Landkreis).regBez;
+    });
+    response.map(d => { delete d.Landkreis });
+    response = Object.values(groupBy(response, 'Regierungsbezirk'))
+      .map(arrDistrict => Object.values(groupBy(arrDistrict, 'Meldedatum'))
+        .map(arrDate => arrDate
+          .reduce((acc, val) => Object.assign(acc, {value: acc.value + val.value}))
+        ))
+      .reduce((acc, val) => acc.concat(val), []);
+  }
+
+  return(response);
 }
 
 function analyseData(data, group) {
@@ -106,7 +106,7 @@ function analyseData(data, group) {
   // flatten data object by removing group key
   data = Object.values(data).reduce((acc, val) => acc.concat(val), []);
 
-  return(data);
+  return data;
 }
 
 function filterData(data, regierungsbezirk, startDate) {
@@ -117,7 +117,7 @@ function filterData(data, regierungsbezirk, startDate) {
     data = data.filter(d => regierungsbezirk.split(',').includes(d.Regierungsbezirk));
   }
 
-  return(data);
+  return data;
 }
 
 function fillMissingDates(arr) {
@@ -133,19 +133,19 @@ function fillMissingDates(arr) {
   }, [])
 }
 
-const groupBy = function(arr, key) {
-  // groups array of objects into array of arrays with grouped data
+// Groups array of objects into array of arrays with grouped data
+function groupBy(arr, key) {
   const group =  arr
     .reduce((acc, val) => {
       (acc[val[key]] = acc[val[key]] || []).push(val);
         return acc;
     }, {});
 
-  return(group);
+  return group;
 }
 
+// Adds 0 to 1-digit day or month values
 function handleDateFormat(str) {
-// adds 0 to 1-digit day or month values
   const year = str.split('-')[0];
   const month = str.split('-')[1].length == 1 ? `0${str.split('-')[1]}` : str.split('-')[1];
   const day = str.split('-')[2].length == 1 ? `0${str.split('-')[2]}` : str.split('-')[2];
@@ -153,18 +153,21 @@ function handleDateFormat(str) {
   return `${year}-${month}-${day}`;
 }
 
+// Turns group value into new key: {sumValue: 10, Geschlecht: 'M'} => {M: 10}
 function spreadGroup(obj, group) {
-// turns group value into new key: {sumValue: 10, Geschlecht: 'M'} => {M: 10}
   const groupValue = obj[group] || 'all';
+
   obj[groupValue] = obj.sumValue;
+
   delete obj[group];
   delete obj.value;
   delete obj.sumValue;
-  return(obj);
+
+  return obj;
 }
 
+// Remove empty filters
 function writeFilterQuery(filter) {
-  // remove empty filters
   Object.keys(filter).forEach(key => {if(filter[key] == '') {delete filter[key];}})
   if (Object.keys(filter).length == 0) {
     return('');
@@ -181,6 +184,7 @@ function writeFilterQuery(filter) {
   return(`+AND+` + Object.values(filter).join('+AND+'));
 }
 
+// Construct query for RKI API
 function writeRkiQuery(endDate, filterQuery, group) {
   const rkiQuery = `${rkiBaseUrl}` +
     `where=Meldedatum<='${endDate}'` + `${filterQuery}` +
