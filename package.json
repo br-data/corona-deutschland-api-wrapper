@@ -2,21 +2,22 @@
   "name": "rki-corona-api",
   "version": "0.0.1",
   "description": "API wrapper for RKI_COVID19 API from Robert Koch-Institut",
+  "author": "Niels Ringler",
+  "license": "MIT",
   "main": "index.js",
-  "watch": {
-    "start": "*.js"
-  },
   "scripts": {
     "watch": "npm-watch start",
     "start": "functions-framework --target=rkiApi",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "Niels Ringler",
-  "license": "MIT",
+  "watch": {
+    "start": "*.js"
+  },
   "dependencies": {
     "node-fetch": "^2.6.0"
   },
   "devDependencies": {
+    "eslint": "^6.8.0",
     "npm-watch": "^0.6.0"
   }
 }
