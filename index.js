@@ -69,12 +69,12 @@ function handleResponse(req, res, data) {
   // Set CORS header to allow all origins
   res.set('Access-Control-Allow-Origin', '*');
 
-  if (params.filetype == 'csv') {
+  if (params.filetype === 'csv') {
     // Spread group values to columns
     const spreadedData = data.map(d => spreadGroup(d, params.group));
     // Merge same dates in one line
-    const mergedData = Object.values(groupBy(spreadedData, 'Meldedatum')).
-      map(arr => arr.reduce((acc, val) => Object.assign(acc, val),[]));
+    const mergedData = Object.values(groupBy(spreadedData, 'Meldedatum'))
+      .map(arr => arr.reduce((acc, val) => Object.assign(acc, val), []));
 
     res.send(jsonToCsv(mergedData));
   } else {
@@ -86,7 +86,7 @@ function handleError(req, res, error) {
   // Set CORS header to allow all origins
   res.set('Access-Control-Allow-Origin', '*');
 
-  if (params.filetype == 'csv') {
+  if (params.filetype === 'csv') {
     res.send(error.error || error);
   } else {
     res.send(error);
@@ -143,10 +143,11 @@ function aggregateData(data) {
     // Fill missing dates per group
     currentData = fillMissingDates(currentData);
     // Change date format from integer to string
-    currentData = currentData.map(d => {
-      d.Meldedatum = new Date(d.Meldedatum).toISOString().split('T')[0];
-      return d;
-    });
+    currentData = currentData.map(d =>
+      Object.assign(d, {
+        Meldedatum: toDateString(d.Meldedatum)
+      })
+    );
     // Sum values cumulative per group
     let currentValue = 0;
     currentData.map(d => d.sumValue = currentValue += d.value);
@@ -176,6 +177,7 @@ function filterData(data) {
 function fillMissingDates(arr) {
   const nextDay = new Date(arr[0].Meldedatum);
   return arr.reduce((acc, val) => {
+    // Ignore daylight saving time
     while (new Date(val.Meldedatum) - nextDay > 2 * 3600 * 1000) {
       const missingDate = Object.assign({...val}, {value: 0, Meldedatum: nextDay.getTime()});
       acc.push(missingDate);
