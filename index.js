@@ -51,7 +51,8 @@ async function handleQuery(req, res) {
   params.startDate = req.query.startDate ? toDateString(req.query.startDate) : '2020-01-24';
   params.endDate = req.query.endDate ? toDateString(req.query.endDate) : toDateString(new Date());
   
-  params.sumField = req.query.sumField ? req.query.sumField : 'AnzahlFall';
+  params.group = req.query.group || '';
+  params.sumField = req.query.sumField || 'AnzahlFall';
   
   const filterQuery = getFilterQuery(['geschlecht', 'altersgruppe', 'bundesland', 'landkreis']);
   const rawData = await getData(filterQuery);
