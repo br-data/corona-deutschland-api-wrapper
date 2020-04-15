@@ -8,6 +8,7 @@ const rkiBaseUrl = 'https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/se
 const params = {
   startDate: undefined,
   endDate: undefined,
+  sumField: undefined,
   geschlecht: undefined,
   altersgruppe: undefined,
   bundesland: undefined,
@@ -19,7 +20,7 @@ const params = {
 
 exports.rkiApi = async function (req, res) {
   const query = req.query;
-  const validParams = ['startDate', 'endDate', 'geschlecht', 'altersgruppe', 'bundesland', 'landkreis', 'regierungsbezirk', 'group', 'filetype'];
+  const validParams = ['startDate', 'endDate', 'sumField', 'geschlecht', 'altersgruppe', 'bundesland', 'landkreis', 'regierungsbezirk', 'group', 'filetype'];
   const invalidParams = Object.keys(query).filter(key => !validParams.includes(key));
 
   // Handle unknown parameters
@@ -49,7 +50,9 @@ async function handleQuery(req, res) {
   // Note: '2020-01-24' is first possible date
   params.startDate = req.query.startDate ? toDateString(req.query.startDate) : '2020-01-24';
   params.endDate = req.query.endDate ? toDateString(req.query.endDate) : toDateString(new Date());
-
+  
+  params.sumField = req.query.sumField ? req.query.sumField : 'AnzahlFall';
+  
   const filterQuery = getFilterQuery(['geschlecht', 'altersgruppe', 'bundesland', 'landkreis']);
   const rawData = await getData(filterQuery);
 
@@ -211,7 +214,7 @@ function getRkiQuery(filterQuery, group) {
     `where=Meldedatum<='${params.endDate}'` + `${filterQuery}` +
     '&orderByFields=Meldedatum' +
     `&groupByFieldsForStatistics=Meldedatum${group.length > 0 ? ',' + group : ''}` +
-    '&outStatistics=[{"statisticType":"sum","onStatisticField":"AnzahlFall",' + '"outStatisticFieldName":"value"}]' +
+    `&outStatistics=[{"statisticType":"sum","onStatisticField":"${params.sumField}",` + `"outStatisticFieldName":"value"}]` +
     '&f=pjson';
 }
 
