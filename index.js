@@ -152,6 +152,7 @@ function aggregateData(data) {
         Meldedatum: toDateString(d.Meldedatum)
       })
     );
+    console.log(currentData);
     // Sum values cumulative per group
     let currentValue = 0;
     currentData.map(d => d.sumValue = currentValue += d.value);
@@ -179,15 +180,15 @@ function filterData(data) {
 }
 
 function fillMissingDates(arr) {
-  const nextDay = new Date(arr[0].Meldedatum);
+  let nextDay = arr[0].Meldedatum;
   return arr.reduce((acc, val) => {
     // Ignore daylight saving time
-    while (new Date(val.Meldedatum) - nextDay > 2 * 3600 * 1000) {
-      const missingDate = Object.assign({...val}, {value: 0, Meldedatum: nextDay.getTime()});
+    while (val.Meldedatum - nextDay > 0) {
+      const missingDate = Object.assign({...val}, {value: 0, Meldedatum: nextDay});
       acc.push(missingDate);
-      nextDay.setDate(nextDay.getDate() + 1);
+      nextDay += 1000 * 3600 * 24;
     }
-    nextDay.setDate(nextDay.getDate() + 1);
+    nextDay += 1000 * 3600 * 24;
     return acc.concat(val);
   }, []);
 }
