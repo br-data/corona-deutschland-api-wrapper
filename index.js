@@ -8,6 +8,7 @@ const rkiBaseUrl = 'https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/se
 const params = {
   startDate: undefined,
   endDate: undefined,
+  dateField: undefined,
   sumField: undefined,
   geschlecht: undefined,
   altersgruppe: undefined,
@@ -20,7 +21,7 @@ const params = {
 
 exports.rkiApi = async function (req, res) {
   const query = req.query;
-  const validParams = ['startDate', 'endDate', 'sumField', 'geschlecht', 'altersgruppe', 'bundesland', 'landkreis', 'regierungsbezirk', 'group', 'filetype'];
+  const validParams = ['startDate', 'endDate', 'dateField', 'sumField', 'geschlecht', 'altersgruppe', 'bundesland', 'landkreis', 'regierungsbezirk', 'group', 'filetype'];
   const invalidParams = Object.keys(query).filter(key => !validParams.includes(key));
 
   // Handle unknown parameters
@@ -52,9 +53,11 @@ async function handleQuery(req, res) {
   params.endDate = req.query.endDate ? toDateString(req.query.endDate) : toDateString(new Date());
   
   params.group = req.query.group || '';
+  params.dateField = req.query.dateField || 'Meldedatum';
   params.sumField = req.query.sumField || 'AnzahlFall';
   
   const filterQuery = getFilterQuery(['geschlecht', 'altersgruppe', 'bundesland', 'landkreis']);
+
   const rawData = await getData(filterQuery);
 
   if (rawData && rawData.length) {
@@ -77,7 +80,7 @@ function handleResponse(req, res, data) {
     // Spread group values to columns
     const spreadedData = data.map(d => spreadGroup(d, params.group));
     // Merge same dates in one line
-    const mergedData = Object.values(groupBy(spreadedData, 'Meldedatum'))
+    const mergedData = Object.values(groupBy(spreadedData, params.dateField))
       .map(arr => arr.reduce((acc, val) => Object.assign(acc, val), []));
 
     res.send(jsonToCsv(mergedData));
@@ -125,7 +128,7 @@ function mergeData(data) {
   });
 
   const mergedData = Object.values(groupBy(enrichedData, 'Regierungsbezirk'))
-    .map(arrDistrict => Object.values(groupBy(arrDistrict, 'Meldedatum'))
+    .map(arrDistrict => Object.values(groupBy(arrDistrict, params.dateField))
       .map(arrDate => arrDate
         .reduce((acc, val) => Object.assign(acc, {value: acc.value + val.value}))
       )
@@ -143,16 +146,15 @@ function aggregateData(data) {
     let currentData = groupedData[key];
 
     // Sort grouped object by date
-    currentData = currentData.sort((a, b) => a.Meldedatum - b.Meldedatum);
+    currentData = currentData.sort((a, b) => a[params.dateField] - b[params.dateField]);
     // Fill missing dates per group
     currentData = fillMissingDates(currentData);
     // Change date format from integer to string
     currentData = currentData.map(d =>
       Object.assign(d, {
-        Meldedatum: toDateString(d.Meldedatum)
+        [params.dateField]: toDateString(d[params.dateField])
       })
     );
-    console.log(currentData);
     // Sum values cumulative per group
     let currentValue = 0;
     currentData.map(d => d.sumValue = currentValue += d.value);
@@ -169,7 +171,7 @@ function aggregateData(data) {
 
 function filterData(data) {
   // Filter dates before 'startDate'
-  const filteredData = data.filter(d => d.Meldedatum >= params.startDate);
+  const filteredData = data.filter(d => d[params.dateField] >= params.startDate);
 
   // Filter gov district
   if (params.regierungsbezirk) {
@@ -180,11 +182,11 @@ function filterData(data) {
 }
 
 function fillMissingDates(arr) {
-  let nextDay = arr[0].Meldedatum;
+  let nextDay = arr[0][params.dateField];
   return arr.reduce((acc, val) => {
     // Ignore daylight saving time
-    while (val.Meldedatum - nextDay > 0) {
-      const missingDate = Object.assign({...val}, {value: 0, Meldedatum: nextDay});
+    while (val[params.dateField] - nextDay > 0) {
+      const missingDate = Object.assign({...val}, {value: 0, [params.dateField]: nextDay});
       acc.push(missingDate);
       nextDay += 1000 * 3600 * 24;
     }
@@ -213,9 +215,9 @@ function getFilterQuery(filterParams) {
 // Build full query string for RKI API
 function getRkiQuery(filterQuery, group) {
   return `${rkiBaseUrl}` +
-    `where=Meldedatum<='${params.endDate}'` + `${filterQuery}` +
-    '&orderByFields=Meldedatum' +
-    `&groupByFieldsForStatistics=Meldedatum${group.length > 0 ? ',' + group : ''}` +
+    `where=${params.dateField}<='${params.endDate}'` + `${filterQuery}` +
+    `&orderByFields=${params.dateField}` +
+    `&groupByFieldsForStatistics=${params.dateField}${group.length > 0 ? ',' + group : ''}` +
     `&outStatistics=[{"statisticType":"sum","onStatisticField":"${params.sumField}",` + `"outStatisticFieldName":"value"}]` +
     '&f=pjson';
 }

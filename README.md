@@ -18,6 +18,7 @@ Für die Verwendung der Daten in Apps und interaktiven Grafiken (Datawrapper) st
 
 - `startDate` *| optional | Default: '2020-01-24' (= erster Tag, den das RKI liefert)*: Gibt an, ab welchem Tag der Wrapper Daten zurück gibt. *Hinweis:* Die aggregierten Fallzahlen enthalten auch weiter zurückliegende Fälle als `fromDate`.
 - `endDate` *| optional | Default: aktuelles Datum*: Gibt an, bis zu welchem Tag der Wrapper Daten zurück gibt
+- `dateField` *| optional | Default: Meldedatum*: Gibt an, zu welchem Datum Fälle zählen. Mögliche Werte sind `Meldedatum` und `Refdatum`, wobei `Refdatum` den *Erkrankungsbeginn* (= Datum des Symptombeginns) darstellt. Dieser kann vor, aber auch nach dem `Meldedatum` liegen. Falls der Erkrankungsbeginn unbekannt ist, gilt dafür das Meldedatum.
 - `sumField` *| optional | Default: AnzahlFall*: Gibt an, welche Werte summiert und ausgegeben werden. Mögliche Werte sind `AnzahlFall`, `AnzahlTodesfall` und `AnzahlGenesen`.
 - `group` *| optional*: Gibt an, nach welchem Feld aggregiert wird. *Hinweis:* Bis jetzt nur einzelne Felder wählbar, z.B. `group=Geschlecht`.  Falls `group=Regierungsbezirk` gesetzt ist, muss auch der Filter `bundesland=Bayern` gesetzt sein
 - `format` *| optional | Default: json*: Wählt das Ausgabeformat. *Hinweis:* Für Datawrapper wähle `format=csv`
