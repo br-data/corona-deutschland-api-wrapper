@@ -27,7 +27,7 @@ exports.rkiApi = async function (req, res) {
   // Handle unknown parameters
   if (invalidParams.length) {
     handleError(req, res, {
-      error: `Invalid query: Unknown parameters ${invalidParams.join(', ')}. Keys are lower-case, values are upper-case.`
+      error: `Invalid query: Unknown parameter ${invalidParams.join(', ')}. Keys are lower-case, values are upper-case.`
     });
   } else {
     // Handle missing aggregation parameter
@@ -90,15 +90,16 @@ function handleResponse(req, res, data) {
 }
 
 function handleError(req, res, error) {
-  const errorMessage = error.error || error;
-  
   // Set CORS header to allow all origins
   res.set('Access-Control-Allow-Origin', '*');
+  
+  const errorMessage = error.error || error.message || error;
+  const errorString = `${error.name ? (error.name + ': ') : ''}${errorMessage}`;
 
   if (params.filetype === 'csv') {
-    res.send(errorMessage);
+    res.send(errorString);
   } else {
-    res.send({ error: errorMessage});
+    res.send({ error: errorString});
   }
 }
 
