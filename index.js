@@ -80,7 +80,7 @@ function handleResponse(req, res, data) {
     // Spread group values to columns
     const spreadedData = data.map(d => spreadGroup(d, params.group));
     // Merge same dates in one line
-    const mergedData = Object.values(groupBy(spreadedData, params.dateField))
+    const mergedData = Object.values(groupBy(spreadedData, 'date'))
       .map(arr => arr.reduce((acc, val) => Object.assign(acc, val), []));
 
     res.send(jsonToCsv(mergedData));
@@ -150,11 +150,13 @@ function aggregateData(data) {
     // Fill missing dates per group
     currentData = fillMissingDates(currentData);
     // Change date format from integer to string
-    currentData = currentData.map(d =>
-      Object.assign(d, {
-        [params.dateField]: toDateString(d[params.dateField])
-      })
-    );
+    currentData = currentData.map(d => {
+      const newDate = Object.assign(d, {
+        date: toDateString(d[params.dateField])
+      });
+      delete d[params.dateField];
+      return newDate;
+    });
     // Sum values cumulative per group
     let currentValue = 0;
     currentData.map(d => d.sumValue = currentValue += d.value);
@@ -171,7 +173,7 @@ function aggregateData(data) {
 
 function filterData(data) {
   // Filter dates before 'startDate'
-  const filteredData = data.filter(d => d[params.dateField] >= params.startDate);
+  const filteredData = data.filter(d => d.date >= params.startDate);
 
   // Filter gov district
   if (params.regierungsbezirk) {
