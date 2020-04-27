@@ -58,7 +58,7 @@ async function handleQuery(req, res) {
   
   const filterQuery = getFilterQuery(['geschlecht', 'altersgruppe', 'bundesland', 'landkreis']);
 
-  const rawData = await getData(filterQuery);
+  const rawData = await getData(req, res, filterQuery);
 
   if (rawData && rawData.length) {
     const analysedData = aggregateData(rawData);
@@ -90,28 +90,30 @@ function handleResponse(req, res, data) {
 }
 
 function handleError(req, res, error) {
+  const errorMessage = error.error || error;
+  
   // Set CORS header to allow all origins
   res.set('Access-Control-Allow-Origin', '*');
 
   if (params.filetype === 'csv') {
-    res.send(error.error || error);
+    res.send(errorMessage);
   } else {
-    res.send(error);
+    res.send({ error: errorMessage});
   }
 }
 
-async function getData(filterQuery) {
+async function getData(req, res, filterQuery) {
   if (params.group === 'Regierungsbezirk') {
     const query = getRkiQuery(filterQuery, 'Landkreis');
     const data = await fetchJson(query)
       .then(json => json.features.map(d => d.attributes))
-      .catch(error => console.error(error));
+      .catch(error => handleError(req, res, error));
     return mergeData(data);
   } else {
     const query = getRkiQuery(filterQuery, params.group);
     const data = await fetchJson(query)
       .then(json => json.features.map(d => d.attributes))
-      .catch(error => console.error(error));
+      .catch(error => handleError(req, res, error));
     return data;
   }
 }
