@@ -17,12 +17,13 @@ const params = {
   landkreis: undefined,
   regierungsbezirk: undefined,
   group: undefined,
+  sumValue: undefined,
   filetype: undefined
 };
 
 exports.rkiApi = async function (req, res) {
   const query = req.query;
-  const validParams = ['startDate', 'endDate', 'dateField', 'sumField', 'geschlecht', 'altersgruppe', 'altersgruppe2', 'bundesland', 'landkreis', 'regierungsbezirk', 'group', 'filetype'];
+  const validParams = ['startDate', 'endDate', 'dateField', 'sumField', 'geschlecht', 'altersgruppe', 'altersgruppe2', 'bundesland', 'landkreis', 'regierungsbezirk', 'group', 'sumValue', 'filetype'];
   const invalidParams = Object.keys(query).filter(key => !validParams.includes(key));
 
   // Handle unknown parameters
@@ -56,6 +57,7 @@ async function handleQuery(req, res) {
   params.group = req.query.group || '';
   params.dateField = req.query.dateField || 'Meldedatum';
   params.sumField = req.query.sumField || 'AnzahlFall';
+  params.sumValue = req.query.sumValue ? req.query.sumValue === 'true' : true;
   
   const filterQuery = getFilterQuery(['geschlecht', 'altersgruppe', 'altersgruppe2', 'bundesland', 'landkreis']);
 
@@ -246,7 +248,7 @@ function toDateString(date) {
 function spreadGroup(obj, group) {
   const groupValue = obj[group] || 'all';
 
-  obj[groupValue] = obj.sumValue;
+  obj[groupValue] = params.sumValue ? obj.sumValue : obj.value;
 
   delete obj[group];
   delete obj.value;
