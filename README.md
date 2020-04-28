@@ -22,7 +22,7 @@ Für die Verwendung der Daten in Apps und interaktiven Grafiken (Datawrapper) st
 - `sumField` *| optional | Default: AnzahlFall*: Gibt an, welche Werte summiert und ausgegeben werden. Mögliche Werte sind `AnzahlFall`, `AnzahlTodesfall` und `AnzahlGenesen`.
 - `group` *| optional*: Gibt an, nach welchem Feld aggregiert wird. *Hinweis:* Bis jetzt nur einzelne Felder wählbar, z.B. `group=Geschlecht`.  Falls `group=Regierungsbezirk` gesetzt ist, muss auch der Filter `bundesland=Bayern` gesetzt sein
 - `format` *| optional | Default: json*: Wählt das Ausgabeformat. *Hinweis:* Für Datawrapper wähle `format=csv`
-- `geschlecht`, `altersgruppe`, `bundesland`, `landkreis`, `regierungsbezirk` *| optional*: Filtert die entsprechenden Felder. Mehrfachauswahl ist möglich, z.B. gibt `bundesland=Bayern&geschlecht=M` die Anzahl der gemeldeten infizierten Männer in Bayern zurück. Mehrfachauswahl innerhalb der Felder ist auch möglich, z.B. `landkreis=SK München,Sk Hamburg`
+- `geschlecht`, `altersgruppe`,`altersgruppe2`, `bundesland`, `landkreis`, `regierungsbezirk` *| optional*: Filtert die entsprechenden Felder. Mehrfachauswahl ist möglich, z.B. gibt `bundesland=Bayern&geschlecht=M` die Anzahl der gemeldeten infizierten Männer in Bayern zurück. Mehrfachauswahl innerhalb der Felder ist auch möglich, z.B. `landkreis=SK München,Sk Hamburg`. *Hinweis:* `altersgruppe2` teilt die Personen in 5-Jahresgruppen ein.
 
 Allgemein Hinweise zur Verwendung der Parameter:
 

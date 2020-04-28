@@ -12,6 +12,7 @@ const params = {
   sumField: undefined,
   geschlecht: undefined,
   altersgruppe: undefined,
+  altersgruppe2: undefined,
   bundesland: undefined,
   landkreis: undefined,
   regierungsbezirk: undefined,
@@ -21,7 +22,7 @@ const params = {
 
 exports.rkiApi = async function (req, res) {
   const query = req.query;
-  const validParams = ['startDate', 'endDate', 'dateField', 'sumField', 'geschlecht', 'altersgruppe', 'bundesland', 'landkreis', 'regierungsbezirk', 'group', 'filetype'];
+  const validParams = ['startDate', 'endDate', 'dateField', 'sumField', 'geschlecht', 'altersgruppe', 'altersgruppe2', 'bundesland', 'landkreis', 'regierungsbezirk', 'group', 'filetype'];
   const invalidParams = Object.keys(query).filter(key => !validParams.includes(key));
 
   // Handle unknown parameters
@@ -56,7 +57,7 @@ async function handleQuery(req, res) {
   params.dateField = req.query.dateField || 'Meldedatum';
   params.sumField = req.query.sumField || 'AnzahlFall';
   
-  const filterQuery = getFilterQuery(['geschlecht', 'altersgruppe', 'bundesland', 'landkreis']);
+  const filterQuery = getFilterQuery(['geschlecht', 'altersgruppe', 'altersgruppe2', 'bundesland', 'landkreis']);
 
   const rawData = await getData(filterQuery);
 
@@ -249,9 +250,17 @@ function spreadGroup(obj, group) {
   return obj;
 }
 
+function handleEncodingExceptions(url) {
+  return url
+    // Handle age-group 'A80+'
+    .replace('A80%20', 'A80%2B');
+} 
+
 // Get JSON from URL
 async function fetchJson(url) {
-  return fetch(encodeURI(url))
+  const encodedUrl = encodeURI(url);
+  const handledUrl = handleEncodingExceptions(encodedUrl);
+  return fetch(handledUrl)
     .then(res => res.json())
     .catch(console.error);
 }
