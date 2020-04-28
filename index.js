@@ -81,7 +81,7 @@ function handleResponse(req, res, data) {
     const spreadedData = data.map(d => spreadGroup(d, params.group));
     // Merge same dates in one line
     const mergedData = Object.values(groupBy(spreadedData, 'date'))
-      .map(arr => arr.reduce((acc, val) => Object.assign(acc, val), []));
+      .map(arr => arr.reduce((acc, val) => Object.assign({}, acc, val), []));
 
     res.send(jsonToCsv(mergedData));
   } else {
@@ -122,7 +122,7 @@ async function getData(req, res, filterQuery) {
 // Join by 'Landkreis', add government district
 function mergeData(data) {
   const enrichedData = data.map(d => {
-    const currentData = Object.assign(d, {
+    const currentData = Object.assign({}, d, {
       Regierungsbezirk: counties
         .find(dd => dd.landkreis == d.Landkreis).regBez
     });
@@ -133,7 +133,7 @@ function mergeData(data) {
   const mergedData = Object.values(groupBy(enrichedData, 'Regierungsbezirk'))
     .map(arrDistrict => Object.values(groupBy(arrDistrict, params.dateField))
       .map(arrDate => arrDate
-        .reduce((acc, val) => Object.assign(acc, {value: acc.value + val.value}))
+        .reduce((acc, val) => Object.assign({}, acc, {value: acc.value + val.value}))
       )
     )
     .reduce((acc, val) => acc.concat(val), []);
