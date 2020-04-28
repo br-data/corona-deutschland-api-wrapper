@@ -255,7 +255,7 @@ function spreadGroup(obj, group) {
   return obj;
 }
 
-function handleEncodingExceptions(url) {
+function fixAgeGroup(url) {
   return url
     // Handle age-group 'A80+'
     .replace('A80%20', 'A80%2B');
@@ -264,7 +264,7 @@ function handleEncodingExceptions(url) {
 // Get JSON from URL
 async function fetchJson(url) {
   const encodedUrl = encodeURI(url);
-  const handledUrl = handleEncodingExceptions(encodedUrl);
+  const handledUrl = fixAgeGroup(encodedUrl);
   return fetch(handledUrl)
     .then(res => res.json())
     .catch(console.error);
