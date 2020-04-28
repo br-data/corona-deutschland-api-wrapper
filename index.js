@@ -28,7 +28,7 @@ exports.rkiApi = async function (req, res) {
   // Handle unknown parameters
   if (invalidParams.length) {
     handleError(req, res, {
-      error: `Invalid query: Unknown parameters ${invalidParams.join(', ')}. Keys are lower-case, values are upper-case.`
+      error: `Invalid query: Unknown parameter ${invalidParams.join(', ')}. Keys are lower-case, values are upper-case.`
     });
   } else {
     // Handle missing aggregation parameter
@@ -59,7 +59,7 @@ async function handleQuery(req, res) {
   
   const filterQuery = getFilterQuery(['geschlecht', 'altersgruppe', 'altersgruppe2', 'bundesland', 'landkreis']);
 
-  const rawData = await getData(filterQuery);
+  const rawData = await getData(req, res, filterQuery);
 
   if (rawData && rawData.length) {
     const analysedData = aggregateData(rawData);
@@ -81,7 +81,7 @@ function handleResponse(req, res, data) {
     // Spread group values to columns
     const spreadedData = data.map(d => spreadGroup(d, params.group));
     // Merge same dates in one line
-    const mergedData = Object.values(groupBy(spreadedData, params.dateField))
+    const mergedData = Object.values(groupBy(spreadedData, 'date'))
       .map(arr => arr.reduce((acc, val) => Object.assign(acc, val), []));
 
     res.send(jsonToCsv(mergedData));
@@ -93,26 +93,29 @@ function handleResponse(req, res, data) {
 function handleError(req, res, error) {
   // Set CORS header to allow all origins
   res.set('Access-Control-Allow-Origin', '*');
+  
+  const errorMessage = error.error || error.message || error;
+  const errorString = `${error.name ? (error.name + ': ') : ''}${errorMessage}`;
 
   if (params.filetype === 'csv') {
-    res.send(error.error || error);
+    res.send(errorString);
   } else {
-    res.send(error);
+    res.send({ error: errorString});
   }
 }
 
-async function getData(filterQuery) {
+async function getData(req, res, filterQuery) {
   if (params.group === 'Regierungsbezirk') {
     const query = getRkiQuery(filterQuery, 'Landkreis');
     const data = await fetchJson(query)
       .then(json => json.features.map(d => d.attributes))
-      .catch(error => console.error(error));
+      .catch(error => handleError(req, res, error));
     return mergeData(data);
   } else {
     const query = getRkiQuery(filterQuery, params.group);
     const data = await fetchJson(query)
       .then(json => json.features.map(d => d.attributes))
-      .catch(error => console.error(error));
+      .catch(error => handleError(req, res, error));
     return data;
   }
 }
@@ -151,11 +154,13 @@ function aggregateData(data) {
     // Fill missing dates per group
     currentData = fillMissingDates(currentData);
     // Change date format from integer to string
-    currentData = currentData.map(d =>
-      Object.assign(d, {
-        [params.dateField]: toDateString(d[params.dateField])
-      })
-    );
+    currentData = currentData.map(d => {
+      const newDate = Object.assign(d, {
+        date: toDateString(d[params.dateField])
+      });
+      delete d[params.dateField];
+      return newDate;
+    });
     // Sum values cumulative per group
     let currentValue = 0;
     currentData.map(d => d.sumValue = currentValue += d.value);
@@ -172,7 +177,7 @@ function aggregateData(data) {
 
 function filterData(data) {
   // Filter dates before 'startDate'
-  const filteredData = data.filter(d => d[params.dateField] >= params.startDate);
+  const filteredData = data.filter(d => d.date >= params.startDate);
 
   // Filter gov district
   if (params.regierungsbezirk) {
