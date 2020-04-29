@@ -106,6 +106,14 @@ https://europe-west3-brdata-corona.cloudfunctions.net/rkiApi/query
 
 ## Verwendung
 
+1. Repository klonen `git clone https://...`
+2. Erforderliche Module installieren `npm install`
+3. Entwicklungsserver starten `npm watch`
+
+Um die Module installieren und die Entwicklerwerkzeuge nutzen zu können, muss vorher die JavaScript-Runtime [Node.js](https://nodejs.org/en/download/) installiert werden. Informationen für Entwickler finden sich weiter [unten](#user-content-entwickeln).
+
+## Deployment
+
 Diese Anleitung geht davon aus, dass bereits ein Google Cloud-Konto vorhanden und ein Rechnungskonto eingerichtet ist. Außerdem sollte das Google Cloud-Kommandzeilenwerkzeug [installiert](https://cloud.google.com/sdk/install) und mit einem Benutzerkonto [verknüpft](https://cloud.google.com/sdk/docs/initializing) sein.
 
 ### Projekt anlegen
