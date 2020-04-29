@@ -36,6 +36,13 @@ Allgemein Hinweise zur Verwendung der Parameter:
 
 ### Beispiele
 
+Entwicklung der Fallzahlen für Deutschland nach Erkennungsdatum abfragen:
+
+```text
+https://europe-west3-brdata-corona.cloudfunctions.net/rkiApi/query
+  ?dateField=Refdatum
+````
+
 Entwicklung der Fallzahlen für Deutschland ab dem 12.03.2020 abfragen:
 
 ```text
@@ -66,6 +73,17 @@ https://europe-west3-brdata-niels.cloudfunctions.net/rkiApi/query
   ?group=Regierungsbezirk
   &bundesland=Bayern
   &regierungsbezirk=Mittelfranken,Oberfranken,Unterfranken
+  &filetype=csv
+```
+
+Entwicklung der Neuinfektionen für drei spezifische Regierungsbezirke (Mittelfranken, Oberfranken, Unterfranken) als CSV-Tabelle abfragen:
+
+```text
+https://europe-west3-brdata-niels.cloudfunctions.net/rkiApi/query
+  ?group=Regierungsbezirk
+  &bundesland=Bayern
+  &regierungsbezirk=Mittelfranken,Oberfranken,Unterfranken
+  &sumValue=false
   &filetype=csv
 ```
 
@@ -121,12 +139,14 @@ $ gcloud config set functions/region europe-west3
 API-Funktion deployen: In diesem Beispiel wird der nicht authentifizierte Zugriff von außerhalb erlaubt, um den Datenaustausch zwischen API und beispielsweise einer Web-App zu ermöglichen:
 
 ```console
-$ gcloud functions deploy rkiApi --runtime nodejs10 --trigger-http --allow-unauthenticated
+$ gcloud functions deploy rkiApi --runtime=nodejs10 --trigger-http --allow-unauthenticated
 ```
 
 ### Lokale Entwicklungsumgebung
 
-Das Google Functions Framework global installieren, um Funktion lokal testen zu können:
+Um das Skript `index.js` lokal zu testen, verwendet man am besten das Google Functions Framework. Das Functions Framework kann mit dem Befehl `npm run watch` gestartet werden. Das hat den Vorteil, dass das Skript jedes Mal neu geladen wird, sobald man Änderungen am Code vornimmt.
+
+Man kann das Functions Framework aber auch manuell installieren und ausführen:
 
 ```console
 $ npm i -g @google-cloud/functions-framework
@@ -138,14 +158,8 @@ Funktion *rkiApi* starten:
 $ functions-framework --target=rkiApi
 ```
 
-API-Anfrage an die aktivierte Funktion stellen (Beispiel):
+API-Anfrage stellen (Beispiel):
 
 ```console
-$ curl -X GET 'localhost:8080?germany/cases?filetype=csv'
+$ curl -X GET 'localhost:8080/query?group=Landkreis&bundesland=Bayern'
 ```
-
-## Verbesserungsvorschläge
-
-- Eigene Endpunkte für Fallzahlen und Todesfälle hinzufügen
-- Error-Handling in eigene Funktion `handleError()` ausgliedern
-- CSV-Magie, wie `spreadGroup()`, nach in Methode `jsonToCsv()` verschieben
