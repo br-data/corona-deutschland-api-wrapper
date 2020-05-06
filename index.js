@@ -229,9 +229,11 @@ function getFilterQuery(filterParams) {
 function getRkiQuery(filterQuery, group) {
   return `${rkiBaseUrl}` +
     `where=${params.dateField}<='${params.endDate}'` + `${filterQuery}` + `${params.newCases ? '+AND+(' + params.newCases + '=-1+OR+' + params.newCases + '=1)' : ''}` +
+    `&resultType=standard` + 
     `&orderByFields=${params.dateField}` +
     `&groupByFieldsForStatistics=${params.dateField}${group.length > 0 ? ',' + group : ''}` +
     `&outStatistics=[{"statisticType":"sum","onStatisticField":"${params.sumField}",` + `"outStatisticFieldName":"value"}]` +
+    '&sqlFormat=standard' +
     '&f=pjson';
 }
 
