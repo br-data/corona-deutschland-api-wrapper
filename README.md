@@ -23,7 +23,8 @@ Für die Verwendung der Daten in Apps und interaktiven Grafiken (Datawrapper) st
 - `group` *| optional*: Gibt an, nach welchem Feld aggregiert wird. *Hinweis:* Bis jetzt nur einzelne Felder wählbar, z.B. `group=Geschlecht`.  Falls `group=Regierungsbezirk` gesetzt ist, muss auch der Filter `bundesland=Bayern` gesetzt sein
 - `filetype` *| optional | Default: json*: Wählt das Ausgabeformat. *Hinweis:* Für Datawrapper wähle `format=csv`
 - `geschlecht`, `altersgruppe`,`altersgruppe2`, `bundesland`, `landkreis`, `regierungsbezirk` *| optional*: Filtert die entsprechenden Felder. Mehrfachauswahl ist möglich, z.B. gibt `bundesland=Bayern&geschlecht=M` die Anzahl der gemeldeten infizierten Männer in Bayern zurück. Mehrfachauswahl innerhalb der Felder ist auch möglich, z.B. `landkreis=SK München,Sk Hamburg`. *Hinweis:* `altersgruppe2` teilt die Personen in 5-Jahresgruppen ein.
-- `sumValue` *| optional | Default: true*: Tageswerte aufaddieren (Summe aller Gemeldeten bis zum jeweiligen Tag) oder nur die neuen Fälle des jeweiligen Tages anzeigen. Nur wirksam bei `filetype=csv`.
+- `sumValue` *| optional | Default: true*: Tageswerte aufaddieren (Summe aller Gemeldeten bis zum jeweiligen Tag) oder nur die Fälle des jeweiligen Tages anzeigen. Nur wirksam bei `filetype=csv`.
+- `newCases` *| optional | Default: false*: Alle Fälle oder nur die am Vortag neu gemeldeten Fälle ausgeben.
 
 Allgemein Hinweise zur Verwendung der Parameter:
 

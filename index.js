@@ -18,12 +18,13 @@ const params = {
   regierungsbezirk: undefined,
   group: undefined,
   sumValue: undefined,
+  newCases: undefined,
   filetype: undefined
 };
 
 exports.rkiApi = async function (req, res) {
   const query = req.query;
-  const validParams = ['startDate', 'endDate', 'dateField', 'sumField', 'geschlecht', 'altersgruppe', 'altersgruppe2', 'bundesland', 'landkreis', 'regierungsbezirk', 'group', 'sumValue', 'filetype'];
+  const validParams = ['startDate', 'endDate', 'dateField', 'sumField', 'geschlecht', 'altersgruppe', 'altersgruppe2', 'bundesland', 'landkreis', 'regierungsbezirk', 'group', 'sumValue', 'newCases', 'filetype'];
   const invalidParams = Object.keys(query).filter(key => !validParams.includes(key));
 
   // Handle unknown parameters
@@ -58,7 +59,11 @@ async function handleQuery(req, res) {
   params.dateField = req.query.dateField || 'Meldedatum';
   params.sumField = req.query.sumField || 'AnzahlFall';
   params.sumValue = req.query.sumValue ? req.query.sumValue === 'true' : true;
-  
+  params.newCases = req.query.newCases ? params.sumField
+    .replace('AnzahlFall', 'NeuerFall')
+    .replace('AnzahlTodesfall', 'NeuerTodesfall')
+    .replace('AnzahlGenesen', 'NeuGenesen') : false;
+
   const filterQuery = getFilterQuery(['geschlecht', 'altersgruppe', 'altersgruppe2', 'bundesland', 'landkreis']);
 
   const rawData = await getData(req, res, filterQuery);
@@ -223,7 +228,7 @@ function getFilterQuery(filterParams) {
 // Build full query string for RKI API
 function getRkiQuery(filterQuery, group) {
   return `${rkiBaseUrl}` +
-    `where=${params.dateField}<='${params.endDate}'` + `${filterQuery}` +
+    `where=${params.dateField}<='${params.endDate}'` + `${filterQuery}` + `${params.newCases ? '+AND+(' + params.newCases + '=-1+OR+' + params.newCases + '=1)' : ''}` +
     `&orderByFields=${params.dateField}` +
     `&groupByFieldsForStatistics=${params.dateField}${group.length > 0 ? ',' + group : ''}` +
     `&outStatistics=[{"statisticType":"sum","onStatisticField":"${params.sumField}",` + `"outStatisticFieldName":"value"}]` +
