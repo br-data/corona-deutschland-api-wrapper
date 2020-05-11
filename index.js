@@ -59,7 +59,7 @@ async function handleQuery(req, res) {
   params.dateField = req.query.dateField || 'Meldedatum';
   params.sumField = req.query.sumField || 'AnzahlFall';
   params.sumValue = req.query.sumValue ? req.query.sumValue === 'true' : true;
-  params.newCases = req.query.newCases ? params.sumField
+  params.newCases = req.query.newCases === 'true' ? params.sumField
     .replace('AnzahlFall', 'NeuerFall')
     .replace('AnzahlTodesfall', 'NeuerTodesfall')
     .replace('AnzahlGenesen', 'NeuGenesen') : false;
@@ -67,10 +67,19 @@ async function handleQuery(req, res) {
   const filterQuery = getFilterQuery(['geschlecht', 'altersgruppe', 'altersgruppe2', 'bundesland', 'landkreis']);
 
   const rawData = await getData(req, res, filterQuery);
+  const rawDataNewCases = params.newCases ? await getData(req, res, filterQuery, getNewCases = true) : undefined;
 
   if (rawData && rawData.length) {
     const analysedData = aggregateData(rawData);
     const filteredData = filterData(analysedData);
+    
+    if (rawDataNewCases && rawDataNewCases.length) {
+      const analysedDataNewCases = aggregateData(rawDataNewCases);
+      const filteredDataNewCases = filterData(analysedDataNewCases);
+      
+      joinNewCases(filteredData, filteredDataNewCases);
+
+    }
 
     handleResponse(req, res, filteredData);
   } else {
@@ -78,6 +87,15 @@ async function handleQuery(req, res) {
       error: 'Query failed: No data received. Please check your query parameter values.'
     });
   }
+}
+
+function joinNewCases(filteredData, filteredDataNewCases) {
+  filteredData.map(d => {
+    const newCases = filteredDataNewCases
+      .find(obj => (obj.date === d.date && obj[params.group] === d[params.group])) || {value: 0, sumValue: 0};
+    d.newCases = newCases.value;
+    d.sumNewCases = newCases.sumValue;
+  })
 }
 
 function handleResponse(req, res, data) {
@@ -111,15 +129,15 @@ function handleError(req, res, error) {
   }
 }
 
-async function getData(req, res, filterQuery) {
+async function getData(req, res, filterQuery, getNewCases = false) {
   if (params.group === 'Regierungsbezirk') {
-    const query = getRkiQuery(filterQuery, 'Landkreis');
+    const query = getRkiQuery(filterQuery, 'Landkreis', getNewCases);
     const data = await fetchJson(query)
       .then(json => json.features.map(d => d.attributes))
       .catch(error => handleError(req, res, error));
     return mergeData(data);
   } else {
-    const query = getRkiQuery(filterQuery, params.group);
+    const query = getRkiQuery(filterQuery, params.group, getNewCases);
     const data = await fetchJson(query)
       .then(json => json.features.map(d => d.attributes))
       .catch(error => handleError(req, res, error));
@@ -195,10 +213,20 @@ function filterData(data) {
 }
 
 function fillMissingDates(arr) {
+
+  if (arr[0][params.dateField] > new Date('2020-01-24').getTime()) {
+    arr.unshift(Object.assign({}, arr[0], {value: 0, [params.dateField]: new Date('2020-01-24').getTime()}));
+  }
+  if (arr[arr.length - 1][params.dateField] < new Date(params.endDate).getTime() - 1000 * 3600 * 24) {
+    arr.push(Object.assign({}, arr[arr.length - 1], {value: 0, [params.dateField]: new Date(params.endDate).getTime() - 1000 * 3600 * 24}));
+  }
+
+  // == First possible date
   let nextDay = arr[0][params.dateField];
-  return arr.reduce((acc, val) => {
+
+  arr = arr.reduce((acc, val) => {
     // Ignore daylight saving time
-    while (val[params.dateField] - nextDay > 0) {
+    while (val[params.dateField] > nextDay) {
       const missingDate = Object.assign({...val}, {value: 0, [params.dateField]: nextDay});
       acc.push(missingDate);
       nextDay += 1000 * 3600 * 24;
@@ -206,6 +234,8 @@ function fillMissingDates(arr) {
     nextDay += 1000 * 3600 * 24;
     return acc.concat(val);
   }, []);
+  
+  return arr;
 }
 
 // Build SQL-like filter query string for RKI API
@@ -226,9 +256,10 @@ function getFilterQuery(filterParams) {
 }
 
 // Build full query string for RKI API
-function getRkiQuery(filterQuery, group) {
+function getRkiQuery(filterQuery, group, getNewCases = false) {
   return `${rkiBaseUrl}` +
-    `where=${params.dateField}<='${params.endDate}'` + `${filterQuery}` + `${params.newCases ? '+AND+(' + params.newCases + '=-1+OR+' + params.newCases + '=1)' : ''}` +
+    `where=${params.dateField}<='${params.endDate}'` + `${filterQuery}` +
+    `${getNewCases ? '+AND+(' + params.newCases + '=-1+OR+' + params.newCases + '=1)' : ''}` +
     `&resultType=standard` + 
     `&orderByFields=${params.dateField}` +
     `&groupByFieldsForStatistics=${params.dateField}${group.length > 0 ? ',' + group : ''}` +
@@ -256,12 +287,12 @@ function spreadGroup(obj, group) {
   const groupValue = obj[group] || 'all';
 
   obj[groupValue] = params.sumValue ? obj.sumValue : obj.value;
+  
+  const output = ['date', groupValue].reduce((output, key) => {
+    output[key] = obj[key];
+    return output; }, {});
 
-  delete obj[group];
-  delete obj.value;
-  delete obj.sumValue;
-
-  return obj;
+  return output;
 }
 
 function fixAgeGroup(url) {

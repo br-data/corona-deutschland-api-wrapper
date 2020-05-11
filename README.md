@@ -24,7 +24,8 @@ Für die Verwendung der Daten in Apps und interaktiven Grafiken (Datawrapper) st
 - `filetype` *| optional | Default: json*: Wählt das Ausgabeformat. *Hinweis:* Für Datawrapper wähle `format=csv`
 - `geschlecht`, `altersgruppe`,`altersgruppe2`, `bundesland`, `landkreis`, `regierungsbezirk` *| optional*: Filtert die entsprechenden Felder. Mehrfachauswahl ist möglich, z.B. gibt `bundesland=Bayern&geschlecht=M` die Anzahl der gemeldeten infizierten Männer in Bayern zurück. Mehrfachauswahl innerhalb der Felder ist auch möglich, z.B. `landkreis=SK München,Sk Hamburg`. *Hinweis:* `altersgruppe2` teilt die Personen in 5-Jahresgruppen ein.
 - `sumValue` *| optional | Default: true*: Tageswerte aufaddieren (Summe aller Gemeldeten bis zum jeweiligen Tag) oder nur die Fälle des jeweiligen Tages anzeigen. Nur wirksam bei `filetype=csv`.
-- `newCases` *| optional | Default: false*: Alle Fälle oder nur die am Vortag neu gemeldeten Fälle ausgeben.
+- `newCases` *| optional | Default: false*: Sollen zusätzlich die neuen Fälle in den Feldern `newCases` und `sumNewCases` ausgegeben werden. Neue Fälle sind alle, die nur in der aktuellen Publikation des RKI und keiner vorherigen enthalten sind.
+*Hinweis:* `sumNewCases` macht nur für den aktuellen Tag Sinn. `newCases` im Objekt gibt an, wievele der neuen Fälle dem Datum im Objekt zugeordnet sind.
 
 Allgemein Hinweise zur Verwendung der Parameter:
 
@@ -36,13 +37,6 @@ Allgemein Hinweise zur Verwendung der Parameter:
 - Ergänzend zur Filterung ist es fast immer sinnvoll auch den Parameter `group` mit einem der Filterfelder zu besetzen.
 
 ### Beispiele
-
-Entwicklung der Fallzahlen für Deutschland nach Erkennungsdatum abfragen:
-
-```text
-https://europe-west3-brdata-corona.cloudfunctions.net/rkiApi/query
-  ?dateField=Refdatum
-````
 
 Entwicklung der Fallzahlen für Deutschland ab dem 12.03.2020 abfragen:
 
@@ -77,17 +71,6 @@ https://europe-west3-brdata-niels.cloudfunctions.net/rkiApi/query
   &filetype=csv
 ```
 
-Entwicklung der Neuinfektionen für drei spezifische Regierungsbezirke (Mittelfranken, Oberfranken, Unterfranken) als CSV-Tabelle abfragen:
-
-```text
-https://europe-west3-brdata-niels.cloudfunctions.net/rkiApi/query
-  ?group=Regierungsbezirk
-  &bundesland=Bayern
-  &regierungsbezirk=Mittelfranken,Oberfranken,Unterfranken
-  &sumValue=false
-  &filetype=csv
-```
-
 Entwicklung der Fallzahlen für alle bayerischen Landkreise abfragen:
 
 ```text
@@ -106,14 +89,6 @@ https://europe-west3-brdata-corona.cloudfunctions.net/rkiApi/query
 ```
 
 ## Verwendung
-
-1. Repository klonen `git clone https://...`
-2. Erforderliche Module installieren `npm install`
-3. Entwicklungsserver starten `npm watch`
-
-Um die Module installieren und die Entwicklerwerkzeuge nutzen zu können, muss vorher die JavaScript-Runtime [Node.js](https://nodejs.org/en/download/) installiert werden. Informationen für Entwickler finden sich weiter [unten](#user-content-entwickeln).
-
-## Deployment
 
 Diese Anleitung geht davon aus, dass bereits ein Google Cloud-Konto vorhanden und ein Rechnungskonto eingerichtet ist. Außerdem sollte das Google Cloud-Kommandzeilenwerkzeug [installiert](https://cloud.google.com/sdk/install) und mit einem Benutzerkonto [verknüpft](https://cloud.google.com/sdk/docs/initializing) sein.
 
@@ -148,14 +123,12 @@ $ gcloud config set functions/region europe-west3
 API-Funktion deployen: In diesem Beispiel wird der nicht authentifizierte Zugriff von außerhalb erlaubt, um den Datenaustausch zwischen API und beispielsweise einer Web-App zu ermöglichen:
 
 ```console
-$ gcloud functions deploy rkiApi --runtime=nodejs10 --trigger-http --allow-unauthenticated
+$ gcloud functions deploy rkiApi --runtime nodejs10 --trigger-http --allow-unauthenticated
 ```
 
 ### Lokale Entwicklungsumgebung
 
-Um das Skript `index.js` lokal zu testen, verwendet man am besten das Google Functions Framework. Das Functions Framework kann mit dem Befehl `npm run watch` gestartet werden. Das hat den Vorteil, dass das Skript jedes Mal neu geladen wird, sobald man Änderungen am Code vornimmt.
-
-Man kann das Functions Framework aber auch manuell installieren und ausführen:
+Das Google Functions Framework global installieren, um Funktion lokal testen zu können:
 
 ```console
 $ npm i -g @google-cloud/functions-framework
@@ -167,8 +140,14 @@ Funktion *rkiApi* starten:
 $ functions-framework --target=rkiApi
 ```
 
-API-Anfrage stellen (Beispiel):
+API-Anfrage an die aktivierte Funktion stellen (Beispiel):
 
 ```console
-$ curl -X GET 'localhost:8080/query?group=Landkreis&bundesland=Bayern'
+$ curl -X GET 'localhost:8080?germany/cases?filetype=csv'
 ```
+
+## Verbesserungsvorschläge
+
+- Eigene Endpunkte für Fallzahlen und Todesfälle hinzufügen
+- Error-Handling in eigene Funktion `handleError()` ausgliedern
+- CSV-Magie, wie `spreadGroup()`, nach in Methode `jsonToCsv()` verschieben
