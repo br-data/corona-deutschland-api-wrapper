@@ -67,7 +67,7 @@ async function handleQuery(req, res) {
   const filterQuery = getFilterQuery(['geschlecht', 'altersgruppe', 'altersgruppe2', 'bundesland', 'landkreis']);
 
   const rawData = await getData(req, res, filterQuery);
-  const rawDataNewCases = params.newCases ? await getData(req, res, filterQuery, getNewCases = true) : undefined;
+  const rawDataNewCases = params.newCases ? await getData(req, res, filterQuery, true) : undefined;
 
   if (rawData && rawData.length) {
     const analysedData = aggregateData(rawData);
@@ -95,7 +95,7 @@ function joinNewCases(filteredData, filteredDataNewCases) {
       .find(obj => (obj.date === d.date && obj[params.group] === d[params.group])) || {value: 0, sumValue: 0};
     d.newCases = newCases.value;
     d.sumNewCases = newCases.sumValue;
-  })
+  });
 }
 
 function handleResponse(req, res, data) {
@@ -299,7 +299,7 @@ function fixAgeGroup(url) {
   return url
     // Handle age-group 'A80+'
     .replace('A80%20', 'A80%2B');
-} 
+}
 
 // Get JSON from URL
 async function fetchJson(url) {
