@@ -1,6 +1,7 @@
 const fetch = require('node-fetch');
 
 const jsonToCsv = require('./lib/json-to-csv');
+const getCurrentCases = require('./lib/get-current-cases');
 const counties = require('./data/counties.json');
 
 const rkiBaseUrl = 'https://services7.arcgis.com/mOBPykOjAyBO2ZKk/arcgis/rest/services/RKI_COVID19/FeatureServer/0/query?';
@@ -19,12 +20,13 @@ const params = {
   group: undefined,
   sumValue: undefined,
   newCases: undefined,
+  currentCases: undefined,
   filetype: undefined
 };
 
 exports.rkiApi = async function (req, res) {
   const query = req.query;
-  const validParams = ['startDate', 'endDate', 'dateField', 'sumField', 'geschlecht', 'altersgruppe', 'altersgruppe2', 'bundesland', 'landkreis', 'regierungsbezirk', 'group', 'sumValue', 'newCases', 'filetype'];
+  const validParams = ['startDate', 'endDate', 'dateField', 'sumField', 'geschlecht', 'altersgruppe', 'altersgruppe2', 'bundesland', 'landkreis', 'regierungsbezirk', 'group', 'sumValue', 'newCases', 'currentCases', 'filetype'];
   const invalidParams = Object.keys(query).filter(key => !validParams.includes(key));
 
   // Handle unknown parameters
@@ -51,7 +53,7 @@ async function handleQuery(req, res) {
     params[key] = req.query[key] || undefined;
   });
   // Set start and end date
-  // Note: '2020-01-24' is first possible date
+  // Note: '2020-01-24' is first possible report date
   params.startDate = req.query.startDate ? toDateString(req.query.startDate) : '2020-01-24';
   params.endDate = req.query.endDate ? toDateString(req.query.endDate) : toDateString(new Date());
   
@@ -79,6 +81,18 @@ async function handleQuery(req, res) {
       
       joinNewCases(filteredData, filteredDataNewCases);
 
+    }
+
+    if (params.currentCases === 'true') {
+      const currentCases = await getCurrentCases(params);
+      filteredData.map(d => {
+        const current = currentCases
+          .find(obj => (obj.date === d.date && obj[params.group] === d[params.group]));
+        d.currentlyInfected = current.currentlyInfected;
+        d.currentlyRecovered = current.currentlyRecovered;
+        d.deathSum = current.deathSum;
+      });
+      console.log(filteredData);
     }
 
     handleResponse(req, res, filteredData);
