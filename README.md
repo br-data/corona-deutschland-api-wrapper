@@ -26,6 +26,7 @@ Für die Verwendung der Daten in Apps und interaktiven Grafiken (Datawrapper) st
 - `sumValue` *| optional | Default: true*: Tageswerte aufaddieren (Summe aller Gemeldeten bis zum jeweiligen Tag) oder nur die Fälle des jeweiligen Tages anzeigen. Nur wirksam bei `filetype=csv`.
 - `newCases` *| optional | Default: false*: Sollen zusätzlich die neuen Fälle in den Feldern `newCases` und `sumNewCases` ausgegeben werden. Neue Fälle sind alle, die nur in der aktuellen Publikation des RKI und keiner vorherigen enthalten sind.
 *Hinweis:* `sumNewCases` macht nur für den aktuellen Tag Sinn. `newCases` im Objekt gibt an, wievele der neuen Fälle dem Datum im Objekt zugeordnet sind.
+- `currentCases` *| optional | Default: false*: Wenn `true`, berechnet der Wrapper die Anzahl der Infizierten und Genesenen pro Tag und ergänzt die Felder `currentlyInfected`, `currentlyRecoverd` und `deathSum`, wobei `deathSum` die Summe der Todesfälle bis zum jeweiligen Tag ist.
 
 Allgemein Hinweise zur Verwendung der Parameter:
 

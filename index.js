@@ -92,7 +92,7 @@ async function handleQuery(req, res) {
         d.currentlyRecovered = current.currentlyRecovered;
         d.deathSum = current.deathSum;
       });
-      console.log(filteredData);
+      // console.log(filteredData);
     }
 
     handleResponse(req, res, filteredData);
