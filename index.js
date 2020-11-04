@@ -98,7 +98,7 @@ async function handleQuery(req, res) {
     handleResponse(req, res, filteredData);
   } else {
     handleError(req, res, {
-      error: 'Query failed: No data received. Please check your query parameter values.'
+      error: 'Query failed: No data received'
     });
   }
 }
