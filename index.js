@@ -25,24 +25,35 @@ const params = {
 };
 
 exports.rkiApi = async function (req, res) {
-  const query = req.query;
-  const validParams = ['startDate', 'endDate', 'dateField', 'sumField', 'geschlecht', 'altersgruppe', 'altersgruppe2', 'bundesland', 'landkreis', 'regierungsbezirk', 'group', 'sumValue', 'newCases', 'currentCases', 'filetype'];
-  const invalidParams = Object.keys(query).filter(key => !validParams.includes(key));
+  // Handle CORS
+  res.set('Access-Control-Allow-Origin', '*');
 
-  // Handle unknown parameters
-  if (invalidParams.length) {
-    handleError(req, res, {
-      error: `Invalid query: Unknown parameter ${invalidParams.join(', ')}. Keys are lower-case, values are upper-case.`
-    });
+  if (req.method === 'OPTIONS') {
+    // Send response to OPTIONS requests
+    res.set('Access-Control-Allow-Methods', 'GET');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    res.set('Access-Control-Max-Age', '3600');
+    res.status(204).send('');
   } else {
-    // Handle missing aggregation parameter
-    if ((query.regierungsbezirk || query.group === 'Regierungsbezirk') &&
-      query.bundesland !== 'Bayern') {
+    const query = req.query;
+    const validParams = ['startDate', 'endDate', 'dateField', 'sumField', 'geschlecht', 'altersgruppe', 'altersgruppe2', 'bundesland', 'landkreis', 'regierungsbezirk', 'group', 'sumValue', 'newCases', 'currentCases', 'filetype'];
+    const invalidParams = Object.keys(query).filter(key => !validParams.includes(key));
+
+    // Handle unknown parameters
+    if (invalidParams.length) {
       handleError(req, res, {
-        error: 'Invalid query: Please set "bundesland=Bayern" when using "group=Regierungsbezirk"'
+        error: `Invalid query: Unknown parameter ${invalidParams.join(', ')}. Keys are lower-case, values are upper-case.`
       });
     } else {
-      handleQuery(req, res);
+      // Handle missing aggregation parameter
+      if ((query.regierungsbezirk || query.group === 'Regierungsbezirk') &&
+        query.bundesland !== 'Bayern') {
+        handleError(req, res, {
+          error: 'Invalid query: Please set "bundesland=Bayern" when using "group=Regierungsbezirk"'
+        });
+      } else {
+        handleQuery(req, res);
+      }
     }
   }
 };
@@ -78,9 +89,8 @@ async function handleQuery(req, res) {
     if (rawDataNewCases && rawDataNewCases.length) {
       const analysedDataNewCases = aggregateData(rawDataNewCases);
       const filteredDataNewCases = filterData(analysedDataNewCases);
-      
+      // @todo This should be assigned to a new variable
       joinNewCases(filteredData, filteredDataNewCases);
-
     }
 
     if (params.currentCases === 'true') {
@@ -92,7 +102,6 @@ async function handleQuery(req, res) {
         d.currentlyRecovered = current.currentlyRecovered;
         d.deathSum = current.deathSum;
       });
-      // console.log(filteredData);
     }
 
     handleResponse(req, res, filteredData);
@@ -113,9 +122,6 @@ function joinNewCases(filteredData, filteredDataNewCases) {
 }
 
 function handleResponse(req, res, data) {
-  // Set CORS header to allow all origins
-  res.set('Access-Control-Allow-Origin', '*');
-
   if (params.filetype === 'csv') {
     // Spread group values to columns
     const spreadedData = data.map(d => spreadGroup(d, params.group));
@@ -130,9 +136,6 @@ function handleResponse(req, res, data) {
 }
 
 function handleError(req, res, error) {
-  // Set CORS header to allow all origins
-  res.set('Access-Control-Allow-Origin', '*');
-  
   const errorMessage = error.error || error.message || error;
   const errorString = `${error.name ? (error.name + ': ') : ''}${errorMessage}`;
 
