@@ -89,12 +89,20 @@ async function handleQuery(req, res) {
     if (rawDataNewCases && rawDataNewCases.length) {
       const analysedDataNewCases = aggregateData(rawDataNewCases);
       const filteredDataNewCases = filterData(analysedDataNewCases);
-      // @todo This should be assigned to a new variable
-      joinNewCases(filteredData, filteredDataNewCases);
+      console.log('filteredDataNewCases', filteredDataNewCases.length);
+      
+      // @Todo Make this immutable
+      filteredData.map(d => {
+        const newCases = filteredDataNewCases
+          .find(obj => (obj.date === d.date && obj[params.group] === d[params.group])) || {value: 0, sumValue: 0};
+        d.newCases = newCases.value;
+        d.sumNewCases = newCases.sumValue;
+      });
     }
 
     if (params.currentCases === 'true') {
       const currentCases = await getCurrentCases(params);
+      // @Todo Make this immutable
       filteredData.map(d => {
         const current = currentCases
           .find(obj => (obj.date === d.date && obj[params.group] === d[params.group]));
@@ -110,15 +118,6 @@ async function handleQuery(req, res) {
       error: 'Query failed: No data received'
     });
   }
-}
-
-function joinNewCases(filteredData, filteredDataNewCases) {
-  filteredData.map(d => {
-    const newCases = filteredDataNewCases
-      .find(obj => (obj.date === d.date && obj[params.group] === d[params.group])) || {value: 0, sumValue: 0};
-    d.newCases = newCases.value;
-    d.sumNewCases = newCases.sumValue;
-  });
 }
 
 function handleResponse(req, res, data) {
