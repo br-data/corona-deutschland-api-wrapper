@@ -89,14 +89,12 @@ async function handleQuery(req, res) {
     if (rawDataNewCases && rawDataNewCases.length) {
       const analysedDataNewCases = aggregateData(rawDataNewCases);
       const filteredDataNewCases = filterData(analysedDataNewCases);
-      console.log('filteredDataNewCases', filteredDataNewCases.length);
-      
       // @Todo Make this immutable
       filteredData.map(d => {
-        const newCases = filteredDataNewCases
-          .find(obj => (obj.date === d.date && obj[params.group] === d[params.group])) || {value: 0, sumValue: 0};
-        d.newCases = newCases.value;
-        d.sumNewCases = newCases.sumValue;
+        let newCases = filteredDataNewCases
+          .find(obj => (obj.date === d.date && obj[params.group] === d[params.group]));
+        d.newCases = newCases ? newCases.value : 0;
+        d.sumNewCases = newCases ? newCases.sumValue : 0;
       });
     }
 
@@ -274,12 +272,12 @@ function getFilterQuery(filterParams) {
 // Build full query string for RKI API
 function getRkiQuery(filterQuery, group, getNewCases = false) {
   return `${rkiBaseUrl}` +
-    `where=${params.dateField}<='${params.endDate}'` + `${filterQuery}` +
+    `where=${params.dateField}<='${params.endDate}'+AND+${params.dateField}>='${params.startDate}'` + `${filterQuery}` +
     `${getNewCases ? '+AND+(' + params.newCases + '=-1+OR+' + params.newCases + '=1)' : ''}` +
-    `&resultType=standard` + 
+    '&resultType=standard' +
     `&orderByFields=${params.dateField}` +
     `&groupByFieldsForStatistics=${params.dateField}${group.length > 0 ? ',' + group : ''}` +
-    `&outStatistics=[{"statisticType":"sum","onStatisticField":"${params.sumField}",` + `"outStatisticFieldName":"value"}]` +
+    `&outStatistics=[{"statisticType":"sum","onStatisticField":"${params.sumField}",` + '"outStatisticFieldName":"value"}]' +
     '&sqlFormat=standard' +
     '&f=pjson';
 }
