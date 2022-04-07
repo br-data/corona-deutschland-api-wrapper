@@ -4,9 +4,9 @@ Der RKI-Wrapper greift auf die API des Robert Koch-Instituts zu und gibt die aus
 
 Der Wrapper holt in einer einzelnen Anfrage die Daten bis zum gewählten End-Datum gemeldeten Fälle und aggregiert die Fallzahlen pro Tag und wahlweise nach weiteren Feldern, wie Altersgruppe oder Landkreis. Im Anschluss berechnet er die kumulative Summe der Fallzahlen vom ersten Meldetag an (=2020-01-24).
 
-*Hinweis:* Um herauszufinden, welche Werte man in die Felder einsetzen kann, lohnt sich ein Blick in den [Überblick der Daten](https://npgeo-corona-npgeo-de.hub.arcgis.com/datasets/dd4580c810204019a7b8eb3e0b329dd6_0/data).
+*Hinweis:* Um herauszufinden, welche Werte man in die Felder einsetzen kann, lohnt sich ein Blick in den [Überblick der Daten](https://npgeo-corona-npgeo-de.hub.arcgis.com/datasets/dd4580c810204019a7b8eb3e0b329dd6_0/data). Eine detaillierte Beschreibung der RKI-API findet sich in [RKI-API.md](./RKI-API.md).
 
-Eine detaillierte Beschreibung der RKI-API findet sich in [RKI-API.md](./RKI-API.md):
+⚠️ Diese API ist veraltet und wird bald abgeschaltet. Alle Corona-Daten werden zukünftig über eine zentrale [Corona-API](https://github.com/br-data/corona-api) bereitgestellt.
 
 ## API
 
